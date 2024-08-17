@@ -41,19 +41,21 @@ async def get_webpage(request: Request):
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
+    logger.info("WebSocket connection established")
+
     try:
         while True:
             data = sensor_data_reader.get_data()
             if data:
                 await websocket.send_json(data)
-            await asyncio.sleep(0.005)
+            await asyncio.sleep(0.1)  # Adjusted sleep time to reduce potential issues
     except WebSocketDisconnect:
-        logger.info("WebSocket connection closed")
+        logger.info("WebSocket connection closed by the client")
     except Exception as e:
         logger.error(f"WebSocket connection error: {e}")
     finally:
-        if not websocket.client.closed:
-            await websocket.close()
+        logger.info("Closing WebSocket connection")
+        await websocket.close()  # Close the WebSocket connection
 
 @app.get("/data/")
 async def get_data():

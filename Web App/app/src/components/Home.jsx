@@ -37,85 +37,55 @@ function App() {
   // Process buffer and update data state
   const processBuffer = () => {
     if (bufferRef.current.length > 0) {
-      setData((prevData) => {
+      setData(prevData => {
         const newData = [
-          ...(Array.isArray(prevData) ? prevData : []),
+          ...prevData,
           ...bufferRef.current.splice(0, bufferRef.current.length)
         ];
   
         if (newData.length > MaxPoints) {
           return newData.slice(newData.length - MaxPoints);
         }
-
         return newData;
       });
     }
   
     requestRef.current = requestAnimationFrame(processBuffer);
   };
-
-  // Ensure the cleanup of the animation frame on component unmount
-  useEffect(() => {
-    requestRef.current = requestAnimationFrame(processBuffer);
   
-    return () => {
-      cancelAnimationFrame(requestRef.current);
-    };
-  });
   
 
   useEffect(() => {
-    // WebSocket connection
-    const socket = new WebSocket("ws://localhost:8000/ws"); // Update the port to match the backend
-
-    socket.onopen = () => {
-      console.log("Connected to WebSocket server");
-    };
-
+    const socket = new WebSocket("ws://localhost:8000/ws");
+  
     socket.onmessage = (event) => {
-      console.log("Received raw data:", event.data);
       try {
         const parsedData = JSON.parse(event.data);
-
-        // Check if data is an array
+  
         if (Array.isArray(parsedData)) {
-          // Process each item in the array
-          parsedData.forEach(item => {
-            if (item.SNO !== undefined && item.Xdata !== undefined && item.Ydata !== undefined && item.Zdata !== undefined) {
-              const formattedData = {
-                SNO: item.SNO,
-                Xdata: parseFloat(item.Xdata),
-                Ydata: parseFloat(item.Ydata),
-                Zdata: parseFloat(item.Zdata),
-              };
-
-              // Log formatted data
-              console.log("Formatted data:", formattedData);
-
-              // Push formatted data to the buffer
-              bufferRef.current.push(formattedData);
-            } else {
-              console.error("Item does not match expected format:", item);
-            }
-          });
-        } else {
-          console.error("Received data is not an array:", parsedData);
+          bufferRef.current.push(...parsedData.map(item => ({
+            SNO: item.SNO,
+            Xdata: parseFloat(item.Xdata),
+            Ydata: parseFloat(item.Ydata),
+            Zdata: parseFloat(item.Zdata),
+          })));
         }
       } catch (error) {
         console.error("Error parsing WebSocket data:", error);
       }
     };
-
+  
+    // Start processing buffer
     requestRef.current = requestAnimationFrame(processBuffer);
-
+  
     return () => {
       socket.close();
       cancelAnimationFrame(requestRef.current);
     };
-  });
-
+  }, []);
+  
   useEffect(() => {
-    console.log("Current data:", data);
+    // console.log("Current data:", data);
   }, [data]);
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
