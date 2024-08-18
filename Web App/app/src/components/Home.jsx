@@ -56,7 +56,7 @@ function App() {
   
 
   useEffect(() => {
-    const socket = new WebSocket("ws://localhost:8000/ws");
+    const socket = new WebSocket("ws://192.168.31.105:8000/ws");
   
     socket.onmessage = (event) => {
       try {
