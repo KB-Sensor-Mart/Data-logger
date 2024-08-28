@@ -1,7 +1,8 @@
-from fastapi import FastAPI, WebSocket, Request, HTTPException, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, Request, HTTPException, WebSocketDisconnect, Form
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sensor_data.data_reader import SensorDataReader, LogWriter
+from network.ipmanager import NetworkConfigurator
 import asyncio
 import logging
 from contextlib import asynccontextmanager
@@ -17,7 +18,7 @@ log_writer = LogWriter(log_filename="log.csv")
 
 # Initialize the sensor data reader
 sensor_data_reader = SensorDataReader(
-    port='COM8',
+    port='/dev/ttyAMA2',
     baud_rate=115200,
     queue_size=1000,
     log_writer=log_writer,
@@ -76,6 +77,33 @@ async def update_sensor_data(request: Request):
         return JSONResponse(content={"data": data})
     else:
         raise HTTPException(status_code=404, detail="No data available")
+       
+@app.get("/ip/", response_class=HTMLResponse)
+async def get_form():
+    return """
+    <html>
+        <body>
+            <h2>Change Raspberry Pi IP Address</h2>
+            <form action="/change-ip" method="post">
+                <label for="ip_address">New IP Address:</label><br>
+                <input type="text" id="ip_address" name="ip_address" placeholder="e.g., 192.168.31.86"><br><br>
+                <label for="routers">Router:</label><br>
+                <input type="text" id="routers" name="routers" placeholder="e.g., 192.168.31.1"><br><br>
+                <label for="dns_servers">DNS Servers:</label><br>
+                <input type="text" id="dns_servers" name="dns_servers" placeholder="e.g., 255.255.0.0"><br><br>
+                <input type="submit" value="Submit">
+            </form> 
+        </body>
+    </html>
+    """
+
+@app.post("/change-ip/")
+async def change_ip(ip_address: str = Form(...), routers: str = Form(...), dns_servers: str = Form(...)):
+    configurator = NetworkConfigurator("eth0")
+    configurator.backup_config()
+    configurator.change_ip_address(ip_address, routers, dns_servers)
+    return {"message": "IP address changed successfully!"}
+
 
 if __name__ == "__main__":
     import uvicorn

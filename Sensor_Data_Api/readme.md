@@ -8,6 +8,10 @@ API-APP/
 ├── sensor_data/
 │   ├── __init__.py
 │   └── data_reader.py
+|
+├── network/
+│   ├── __init__.py
+│   └── ipmanager.py
 │
 ├── requirements.txt
 └── README.md
