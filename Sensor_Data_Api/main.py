@@ -1,16 +1,28 @@
 from fastapi import FastAPI, WebSocket, Request, HTTPException, WebSocketDisconnect, Form
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.middleware.cors import CORSMiddleware
 from sensor_data.data_reader import SensorDataReader, LogWriter
-from network.ipmanager import NetworkConfigurator
 import asyncio
 import logging
+from pydantic import BaseModel
 from contextlib import asynccontextmanager
+from network.ipmanager import NetworkConfigurator  #importing the ip change configurations
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+
+#this is the cors that is used in editing the ip 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],#here * means that all the ip are accessable
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+                
 templates = Jinja2Templates(directory="templates")
 
 # Initialize the log writer
@@ -77,33 +89,24 @@ async def update_sensor_data(request: Request):
         return JSONResponse(content={"data": data})
     else:
         raise HTTPException(status_code=404, detail="No data available")
-       
-@app.get("/ip/", response_class=HTMLResponse)
-async def get_form():
-    return """
-    <html>
-        <body>
-            <h2>Change Raspberry Pi IP Address</h2>
-            <form action="/change-ip" method="post">
-                <label for="ip_address">New IP Address:</label><br>
-                <input type="text" id="ip_address" name="ip_address" placeholder="e.g., 192.168.31.86"><br><br>
-                <label for="routers">Router:</label><br>
-                <input type="text" id="routers" name="routers" placeholder="e.g., 192.168.31.1"><br><br>
-                <label for="dns_servers">DNS Servers:</label><br>
-                <input type="text" id="dns_servers" name="dns_servers" placeholder="e.g., 255.255.0.0"><br><br>
-                <input type="submit" value="Submit">
-            </form> 
-        </body>
-    </html>
-    """
+         
 
-@app.post("/change-ip/")
-async def change_ip(ip_address: str = Form(...), routers: str = Form(...), dns_servers: str = Form(...)):
-    configurator = NetworkConfigurator("eth0")
-    configurator.backup_config()
-    configurator.change_ip_address(ip_address, routers, dns_servers)
-    return {"message": "IP address changed successfully!"}
 
+class IPChangeRequest(BaseModel):
+    ip_address: str
+    routers: str
+    dns_servers: str
+
+@app.post("/ip/")
+async def change_ip(request: IPChangeRequest):
+    try: 
+        configurator = NetworkConfigurator("eth0")
+        configurator.backup_config()
+        configurator.change_ip_address(request.ip_address, request.routers, request.dns_servers)
+        return {"message": "IP address changed successfully!"}
+    except Exception as e:
+        logger.error(f"Failed to change IP: {e}")
+        raise HTTPException(status_code=500, detail="Failed to change IP address")
 
 if __name__ == "__main__":
     import uvicorn
