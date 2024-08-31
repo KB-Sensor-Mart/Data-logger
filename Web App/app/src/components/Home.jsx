@@ -2,37 +2,42 @@ import React, { useState } from "react";
 import Popup from 'reactjs-popup';
 import 'reactjs-popup/dist/index.css';
 import axios from 'axios';
-import qs from 'qs';
 
 function Home() {
-    const [ipAddress, setIpAddress] = useState('');
+	    const [ipAddress, setIpAddress] = useState('');
     const [routerIp, setRouterIp] = useState('');
-    const [dns_servers, setdns_servers] = useState('');
+    const [dnsservers, setdnsservers] = useState('');
     const [ipAssignment, setIpAssignment] = useState('dhcp');
 
     const [selectedDate, setSelectedDate] = useState('');
     const [startTime, setStartTime] = useState('');
     const [endTime, setEndTime] = useState('');
-
+ 
     const handleSave = async () => {
-        const payload = {
-            ip_address: ipAssignment === 'manual' ? ipAddress : '',
-            routers: ipAssignment === 'manual' ? routerIp : '',
-            dns_server: ipAssignment === 'manual' ? dns_servers : ''
-        };
-        
-        try {
-            const response = await axios.post('http://localhost:8000/change-ip/', qs.stringify(payload), {
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                }
-            });
-            alert(response.data.message);
-        } catch (error) {
-            console.error('Error response:', error.response);
-            alert('Failed to change IP: ' + (error.response ? error.response.data.detail : error.message));
-        }
+    if (ipAssignment === 'manual' && (!ipAddress || !routerIp || !dnsservers)) {
+        alert('Please fill in all fields for manual IP assignment');
+        return;
+    }
+
+    const payload = {
+        ip_address: ipAssignment === 'manual' ? ipAddress : '',
+        routers: ipAssignment === 'manual' ? routerIp : '',
+        dns_servers: ipAssignment === 'manual' ? dnsservers : ''
     };
+
+    try {
+        const response = await axios.post('http://192.168.31.107:8000/ip/', payload, {
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        console.log(response.data);
+    } catch (error) {
+        console.error('Error:', error);
+    }
+};
+
+
 
     const handleDownload = async () => {
         if (!selectedDate || !startTime || !endTime) {
@@ -46,11 +51,11 @@ function Home() {
         }
 
         try {
-            const response = await axios.get('http://localhost:8000/downloaddata', {
+            const response = await axios.get('http://192.168.31.107:8000/download_data', {
                 params: {
-                    formatted_date: selectedDate,
-                    start_t: startTime,
-                    end_t: endTime
+                    date: selectedDate,
+                    start_time: startTime,
+                    end_time: endTime
                 },
                 responseType: 'blob' 
             });
@@ -124,9 +129,9 @@ function Home() {
                                         />
                                         <input
                                             type="text"
-                                            value={dns_servers}
-                                            onChange={(e) => setdns_servers(e.target.value)}
-                                            placeholder="Enter Subnet Mask"
+                                            value={dnsservers}
+                                            onChange={(e) => setdnsservers(e.target.value)}
+                                            placeholder="Enter Dns "
                                             className="w-full p-2 border border-gray-300 rounded mb-4"
                                         />
                                     </>
