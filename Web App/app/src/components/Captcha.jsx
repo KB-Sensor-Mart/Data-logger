@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Swal from 'sweetalert2';
 
 function OfflineCaptcha() {
   const [question, setQuestion] = useState('');
@@ -18,13 +19,18 @@ function OfflineCaptcha() {
   const handleSubmit = (e) => {
     e.preventDefault(input);
     if (parseInt(input) === answer) {
-      setErrorMessage('learn some Maths');
-      alert('captcha passed')
-      // Continue with form submission or other logic
-    } else {
-      setErrorMessage('Incorrect answer. Please try again.');
-    }
-  };
+     } else {
+        Swal.fire({
+          title: 'incorrect ',
+          text: input.Message || '',
+          icon: 'error',
+          confirmButtonText: 'Back'
+    
+        })
+      }  
+        
+    
+      };
 
   // Generate a new question when the component mounts
   React.useEffect(() => {

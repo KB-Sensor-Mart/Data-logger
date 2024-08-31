@@ -130,6 +130,18 @@ class CSVwriter:
     def close(self):
         self.file.close()
 
+#this is the files where i will handel the downloading data via ethernet   
+class FilesDownloading:
+    def __init__(self,base_folder):
+        self.base_folder =base_folder
+    
+    def get_files_by_date(self,date_str):
+        date_folder = os.path.join(self.base_folder,date_str)
+        if not os.path.exists(date_folder):
+            return[]
+        files=[os.path.join(date_folder, f) for f in os.listdir(date_folder) if f.endswith('.csv')]
+        return files
+    
 class SensorDataReader:
     def __init__(self, port, baud_rate, queue_size, csv_filename_prefix, sr_no_limit, log_writer):
         self.port = port
