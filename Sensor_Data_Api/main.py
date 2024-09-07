@@ -11,16 +11,23 @@ from datetime import datetime
 import zipfile
 import traceback
 import io
+import threading
+import uvicorn
 from pydantic import BaseModel
 from contextlib import asynccontextmanager
 from network.ipmanager import NetworkConfigurator  #importing the ip change configurations
+from ftp.ftp_handler import FTPHandler
+import time
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
-#path where data is stored
 
+#path where data is stored
 BASE_FOLDER ="/home/admin/Data-logger/Sensor_Data_Api/data/"
 
 #this is the cors that is used in editing the ip 
@@ -46,7 +53,44 @@ sensor_data_reader = SensorDataReader(
     csv_filename_prefix=" ",
     sr_no_limit=29999
 )
+# Initialize the FTP handler with default settings
+ftp_uploader =None
 
+class FTPSettings(BaseModel):
+    host: str
+    port: int
+    username: str
+    password: str
+    remote_path: str
+    log_file: str = "uploaded_files_log.json"
+    retries: int = 3
+    
+class NewFileHandler(FileSystemEventHandler):
+		def on_created(self, event):
+			if not event.is_directory and ftp_connection_established:
+				logging.info(f"New file detected: { event.srv_path}")
+				#autometically upload new file to ftp server 
+				try:
+					ftp_uploader.upload_file(event.src_path)
+					logging.info(f"File{event.src_path} uploaded to ftp successfully.")
+				except Exception as e:
+					logging.error(f"Failed to upload file {event.src_path} to FTP: {e}")
+		
+#start observing base directory for new files 
+def start_observing_directory():
+	event_handler = NewFileHandler()
+	observer = Observer()
+	observer.schedule(event_handler, BASE_FOLDER, recursive =False)
+	observer.start()
+			
+	#keep observing in seperate thread
+	try:
+		while True:
+			time.sleep(1)
+	except KeyboardInterrupt:
+		observer.stop()
+	observer.join()					
+				
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup event: Start the data reading threads (Already started in SensorDataReader)
@@ -59,6 +103,69 @@ app.router.lifespan = lifespan
 @app.get("/", response_class=HTMLResponse)
 async def get_webpage(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
+@app.get("/ftp", response_class=HTMLResponse)
+async def ftp_page(request: Request):
+    return templates.TemplateResponse("ftp.html", {"request": request}) 
+  
+
+@app.post("/update_ftp_credentials/")
+async def update_ftp_credentials(
+    host: str = Form(...),
+    port: int = Form(...),
+    username: str = Form(...),
+    password: str = Form(...),
+    remote_path: str = Form(...)
+):
+    global ftp_uploader
+    try:
+        ftp_uploader = FTPHandler(
+            host=host,
+            port=port,
+            username=username,
+            password=password,
+            remote_path=remote_path,
+            log_file='./log/uploaded_files_log.json',
+            retries=3
+        )
+        ftp_uploader.connect()
+        ftp_connection_established = True
+        logging.info("FTP credentials updated and connection established.")
+        return {"message": "FTP credentials updated successfully"}
+    except Exception as e:
+        ftp_connection_established = False
+        logging.error(f"Error updating FTP credentials: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+    
+@app.post("/start_ftp_upload/")
+async def start_ftp_upload():
+    global ftp_uploader
+    if ftp_uploader is None:
+        return JSONResponse(status_code=400, content={"message": "FTP credentials not set. Please set them first."})
+
+    try:
+        ftp_uploader.trigger_upload(BASE_FOLDER)
+        return {"message": "FTP upload process started successfully"}
+    except Exception as e:
+        logging.error(f"Error starting FTP upload: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+        
+@app.get("/check_ftp_connection")
+async def check_ftp_connection():
+		global ftp_uploader
+		if ftp_uploader is None:
+			return JSONResponse(status_code = 400, content ={"message":"FTP credentials  not set"})
+		
+		try:
+			success = ftp_uploader.connect()
+			if success:
+				return {"message": "Successfully connected to the FTP server."}
+			else:
+				return {"message": "Failed to connect to the FTP server."}
+		except Exception as e:
+			logger.error(f"Error in /check_ftp_connection: {e}")
+			return JSONResponse(status_code=500, content={"message": f"Failed to connect to the FTP server. Error: {str(e)}"})
+
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -178,5 +285,11 @@ async def change_ip(request: IPChangeRequest):
 
         
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    
+	#start directory monetoring in seperate thread
+		directory_observer_thread = threading.Thread(target = start_observing_directory)
+		directory_observer_thread.daemon =True
+		directory_observer_thread.start()
+
+		uvicorn.run(app, host="0.0.0.0", port=8000)
+
