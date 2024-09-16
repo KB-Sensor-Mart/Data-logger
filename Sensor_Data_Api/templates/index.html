@@ -10,6 +10,10 @@
     <nav>
     <a href="/ftp">click here </a>
     </nav>
+    <h1>Log in Page</h1>
+    <nav>
+    <a href="/login">click here </a>
+    </nav>
     <h2>Download Files by Date and Time Range</h2>
     <form id="downloadForm" action="/download_data" method="GET">
         <label for="date">Date (DD-MM-YYYY):</label>
@@ -25,7 +29,7 @@
     </form>
 
     <h2>Change IP Address</h2>
-    <form id="ipChangeForm" action="/ip/" method="POST">
+    <form id="ipChangeForm" action="/ip" method="POST">
         <label for="ip_address">IP Address:</label>
         <input type="text" id="ip_address" name="ip_address" required><br><br>
 
@@ -58,7 +62,7 @@
             const dnsServers = document.getElementById('dns_servers').value;
 
             try {
-                const response = await fetch('/ip/', {
+                const response = await fetch('/ip', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -83,4 +87,4 @@
         }
     </script>
 </body>
-</html>
+</html

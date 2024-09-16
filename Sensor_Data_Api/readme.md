@@ -28,3 +28,5 @@ Sensor_Data_Api/
 ├── requirements.txt
 └── README.md
 
+
+here currently downloading file over ethernet , ip change and login functions are working.
