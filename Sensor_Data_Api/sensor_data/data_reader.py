@@ -129,7 +129,7 @@ class CSVwriter:
 
     def close(self):
         self.file.close()
-
+        
 #this is the files where i will handel the downloading data via ethernet   
 class FilesDownloading:
     def __init__(self,base_folder):

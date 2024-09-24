@@ -11,6 +11,9 @@ import {
   Legend
 } from "recharts";
 import { useNavigate } from "react-router-dom";
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer'
+import {useIp} from './IpContext'
 
 // Static Legend Component
 // const StaticLegend = () => (
@@ -21,7 +24,8 @@ import { useNavigate } from "react-router-dom";
 //   </div>
 // );
 
-function App() {
+function Graph() {
+  const { ipAddress } = useIp();
   const [data, setData] = useState([]);
   const bufferRef = useRef([]);
   const requestRef = useRef();
@@ -52,11 +56,8 @@ function App() {
   
     requestRef.current = requestAnimationFrame(processBuffer);
   };
-  
-  
-
-  useEffect(() => {
-    const socket = new WebSocket("ws://192.168.56.1:8000/ws");
+ useEffect(() => {
+    const socket = new WebSocket(`ws://${ipAddress}:8000/ws`);
   
     socket.onmessage = (event) => {
       try {
@@ -94,20 +95,9 @@ function App() {
     setIsMenuOpen(!isMenuOpen);
   };
 
-  return (
+return (
     <>
-    <nav className="p-4">
-      <div className="flex items-center justify-between">
-        <TiThMenuOutline className="text-black text-2xl cursor-pointer" onClick={handleMenuToggle} />
-      </div>
-      {isMenuOpen && (
-        <div className="flex flex-col mt-2 space-y-2">
-          <button className="bg-black text-white px-4 py-2 rounded hover:bg-gray-200" onClick={() => navigate("/login")}>Login</button>
-          <button className="bg-black text-white px-4 py-2 rounded hover:bg-gray-200" onClick={() => navigate("/admin")}>Admin</button>
-          <button className="bg-black text-white px-4 py-2 rounded hover:bg-gray-200" onClick={() => navigate("/register")}>Register</button>
-        </div>
-      )}
-    </nav>
+    < Navbar/>
   
     <div className="flex flex-col lg:flex-row flex-wrap">
     
@@ -179,4 +169,4 @@ function App() {
   );
 }
 
-export default App;
+export default Graph;

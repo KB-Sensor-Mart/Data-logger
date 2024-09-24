@@ -3,130 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FTP Upload</title>
+    <title>FTP Server Form</title>
+
+    <script src="/static/scripts.js" defer></script>
 </head>
 <body>
-    <h1> Back to home</h1>
-    <nav>
-        <a href="/">click here </a>
-    </nav>
-    
+    <h1>FTP Manager</h1>
 
-    <!-- Input fields to update FTP credentials -->
-    <h2>Update FTP Credentials</h2>
-    <label for="host">Host:</label>
-    <input type="text" id="host" required><br><br>
+    <!-- Form to upload FTP credentials -->
+    <form id="ftp-credentials-form" onsubmit="submitForm(event, '/ftp/upload_credentials', new FormData(this), 'form-response')">
+        <label for="host">Host:</label>
+        <input type="text" id="host" name="host" required><br>
+        <label for="port">Port:</label>
+        <input type="number" id="port" name="port" required><br>
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" required><br>
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required><br>
+        <label for="remotepath">Remote Path:</label>
+        <input type="text" id="remotepath" name="remotepath" required><br>
+        <button type="submit">Upload Credentials</button>
+    </form>
+    <p id="form-response"></p>
 
-    <label for="port">Port:</label>
-    <input type="number" id="port" required><br><br>
-
-    <label for="username">Username:</label>
-    <input type="text" id="username" required><br><br>
-
-    <label for="password">Password:</label>
-    <input type="password" id="password" required><br><br>
-
-    <label for="remote_path">Remote Path:</label>
-    <input type="text" id="remote_path" required><br><br>
-
-    <button id="update-ftp-credentials">Update Credentials</button>
-    <p id="credentials-message"></p>
+    <!-- Button to fetch FTP credentials -->
+    <button onclick="fetchCredentials()">Fetch FTP Credentials</button>
+    <pre id="credentials"></pre>
 
     <!-- Button to check FTP connection -->
-    <button id="check-ftp-button">Check FTP Connection</button>
-    <p id="ftp-status"></p>
+    <button onclick="checkConnection()">Check Connection</button>
+    <p id="connection-status"></p>
 
-    <!-- Button to start FTP upload -->
-    <button id="start-ftp-upload">Start FTP Upload</button>
-    <p id="upload-status"></p>
-    
-      <!-- New Button to stop FTP process -->
-    <button id="stop-ftp-button">Stop FTP Process</button>
-    <p id="stop-ftp-status"></p>
+    <!-- Button to upload files from the folder -->
+    <button onclick="uploadFolder()">Upload All Files from Folder</button>
+    <p id="upload-folder-status"></p>
 
-<script>
-
-    // Function to send FTP credentials as JSON
-    document.getElementById('update-ftp-credentials').addEventListener('click', function() {
-        const ftpCredentials = {
-            host: document.getElementById('host').value,
-            port: document.getElementById('port').value,
-            username: document.getElementById('username').value,
-            password: document.getElementById('password').value,
-            remote_path: document.getElementById('remote_path').value
-        };
-
-        fetch('/update_ftp_credentials', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(ftpCredentials)
-        })
-            .then(response => {
-				if (!response.ok) {
-					// If the response is not successful, throw an error
-					throw new Error('Failed to update FTP credentials. Status: ' + response.status);
-				}
-				return response.json(); // Return the parsed JSON if response is successful
-			})
-			.then(response => {
-        if (!response.ok) {
-            throw new Error('Failed to update FTP credentials. Status: ' + response.status);
-        }
-        return response.json(); // Return the parsed JSON if response is successful
-    })
-    .then(data => {
-         document.getElementById('credentials-message').innerText = data.message || "Error updating credentials";
-    })
-    .catch(error => {
-        document.getElementById('credentials-message').innerText = error.message || "Failed to update credentials";
-        console.error('Error:', error);
-    });
-});
-    // Handle FTP upload initiation
-    document.getElementById('start-ftp-upload').addEventListener('click', function() {
-        fetch('/start_ftp_upload', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById('upload-status').innerText = data.message || "Error starting upload";
-        })
-        .catch(error => {
-            document.getElementById('upload-status').innerText = "Failed to start FTP upload";
-            console.error('Error:', error);
-        });
-    });
-
-    // Check FTP connection
-    document.getElementById('check-ftp-button').addEventListener('click', function() {
-        fetch('/check_ftp_connection')
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById('ftp-status').innerText = data.message || 'Error checking FTP connection';
-        })
-        .catch(error => {
-            document.getElementById('ftp-status').innerText = 'Error checking FTP connection.';
-            console.error('Error:', error);
-        });
-    });
-    
-     // Handle stopping FTP process
-        document.getElementById('stop-ftp-button').addEventListener('click', function() {
-            fetch('/stop_ftp_process', { method: 'POST' })
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('stop-ftp-status').innerText = data.message || "Error stopping FTP process";
-            })
-            .catch(error => {
-                document.getElementById('stop-ftp-status').innerText = "Failed to stop FTP process";
-                console.error('Error:', error);
-            });
-        });
-</script>
+    <button onclick="stopUpload()">Stop Uploading the Files</button>
+    <p id="stop-upload-status"></p>
 </body>
 </html>

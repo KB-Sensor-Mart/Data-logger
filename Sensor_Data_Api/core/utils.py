@@ -1,5 +1,4 @@
 import logging
-from ftp.ftp_handler import FTPHandler
 import os
 import asyncio
 import traceback
@@ -7,7 +6,7 @@ import io
 from fastapi import Request
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-from fastapi import HTTPException,WebSocket,FastAPI,WebSocketDisconnect
+from fastapi import HTTPException,WebSocket,FastAPI,WebSocketDisconnect, BackgroundTasks
 from io import BytesIO
 import zipfile
 import time 
@@ -39,83 +38,10 @@ sensor_data_reader = SensorDataReader(
     csv_filename_prefix=" ",
     sr_no_limit=29999
 )
-ftp_uploader = None
-# ---------------- Timer logic-----------
-'''async def timer():
-	global start_time
-	if start_time is None:
-		start_time = time.time()
-	while True:
-		current_time = time.time() - start_time
-		print(f"\rTime: {int(current_time)}seconds",end = '')
-		await asyncio.sleep(1)
-'''
+
+
 #----------------FTP Logic ----------------------
 
-async def update_ftp_credentials(creds: FTPCredentialUpdate):
-    global ftp_uploader
-    try:
-        ftp_uploader = FTPHandler(
-            host=creds.host,
-            port=creds.port,
-            username=creds.username,
-            password=creds.password,
-            remote_path=creds.remote_path,
-            log_file='./log/uploaded_files_log.json',
-            retries=3
-        )
-        ftp_uploader.connect()
-        logging.info("FTP credentials updated and connection erstablished")
-        return {"message": "FTP credentials updated successfully"}
-    except Exception as e:
-        logger.error(f"Error updating FTP credentials: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-async def start_ftp_upload():
-    global ftp_uploader
-    global upload_interval_time
-    
-    if ftp_uploader is None:
-        return {"message": "FTP credentials not set"}
-    while True:
-        try:
-			#scan and upload files
-            logger.debug("starting ftp scan and upload")
-            await ftp_uploader.scan_and_upload(BASE_FOLDER)
-            logger.debug(f"Waiting for {upload_interval_time} seconds befor next upload")
-            #wait for specific time interval
-            await asyncio.sleep(upload_interval_time)
-        except Exception as e:
-            logger.error(f"Error starting FTP upload: {e}")
-            raise HTTPException(status_code=500, detail="Internal server error")
-
-async def check_ftp_connection():
-		global ftp_uploader
-		if ftp_uploader is None:
-			return JSONResponse(status_code = 400, content ={"message":"FTP credentials  not set"})		
-		try:
-			success = ftp_uploader.connect()
-			if success:
-				return {"message": "Successfully connected to the FTP server."}
-			else:
-				return {"message": "Failed to connect to the FTP server."}
-		except Exception as e:
-			logger.error(f"Error in /check_ftp_connection: {e}")
-			return JSONResponse(status_code=500, content={"message": f"Failed to connect to the FTP server. Error: {str(e)}"})
-
-async def stop_ftp_process():
-	global ftp_uploader
-	if ftp_uploader is None:
-		return{"message": "No FTP process to stop"}
-	try:
-		#calling upp the disconnect function of FTPHandler
-		ftp_uploader.disconnect()
-		logging.info("FTP process stopped successfully")
-		return{"message": "FTP process stopped succesfully"}
-	except Exception as e:
-		#Log the error and return an HTTP error response
-		logging.error(f"Error stopping FTP process: {e}")
-		return JSONResponse(status_code = 500, content = {"message": "Failed to stop FTP"})
 
 
 class NewFileHandler(FileSystemEventHandler):

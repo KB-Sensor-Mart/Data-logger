@@ -3,16 +3,18 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import OfflineCaptcha from '../components/Captcha'; // Ensure correct path
 import Swal from 'sweetalert2';
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
+import {useIp} from './IpContext'
 
 const Login = () => {
   const [values, setValues] = useState({
-    email: '',
+    username: '',
     password: '',
   });
   const [captchaValid, setCaptchaValid] = useState(false);
   const navigate = useNavigate();
-
-  axios.defaults.withCredentials = true;
+  const {ipAddress} = useIp();
 
   const handleCaptchaValidation = (isValid) => {
     setCaptchaValid(isValid);
@@ -21,62 +23,59 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (captchaValid) {
-      Swal.fire({
-        title: 'CAPTCHA Required',
-        text: 'Please solve the CAPTCHA first.',
-        icon: 'warning',
-        confirmButtonText: 'OK',
-      });
-      return;
-    }
-
     try {
-      const res = await axios.post('http://localhost:5001/api/auth/login', values, {
-        withCredentials: true, // Ensure credentials are included
+      const res = await axios.post(`http://${ipAddress}:8000/login`, values, {
+        // Ensure credentials are included if needed (e.g., withCredentials: true for cookies-based sessions)
       });
 
-      console.log('Backend response:', res.data); // Add this line for debugging
+      console.log('Backend response:', res.data); // Debugging line
 
-      if (res.data.status === "success") {
-        navigate('/home');
-      } else {
+      if (res.data.message === "Login successful") {
+          navigate('/home');        
+      } else if (res.data.message === "unauthorized") {
+     
         Swal.fire({
-          title: 'Incorrect Password or Email',
-          text: res.data.Message || '',
+          title: 'Error!',
+          text: `Incorrect Password or Username: ${res.data.Message || ''}`,
           icon: 'error',
-          confirmButtonText: 'Back',
+          confirmButtonText: 'OK'
         });
       }
+
     } catch (err) {
-      console.log('Error logging in', err);
+      console.error('Error:', err);
+
+      // SweetAlert for general error
       Swal.fire({
-        title: 'Error logging in',
-        text: 'An unexpected error occurred. Please try again later.',
+        title: 'Error!',
+        text: 'An error occurred. Please try again.',
         icon: 'error',
-        confirmButtonText: 'Back',
+        confirmButtonText: 'OK'
       });
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-50 flex items-center justify-center p-4">
+   return (
+  <>
+  <div className="flex flex-col min-h-screen">
+    <Navbar />
 
-      <div className="flex flex-col md:flex-row items-center justify-center rounded-lg">
-        <div className="w-full md:w-[35rem] hidden md:block flex justify-center">
-          <img src="./images/login.png" alt="Login" className="w-full max-w-none h-[30rem] md:h-[35rem] shadow-xl rounded-l-lg md:rounded-l-lg" />
+    {/* Main Section - Center the login form */}
+    <div className="flex-1 flex items-center pt-5 pb-5 justify-center bg-gradient-to-b from-indigo-50">
+      <div className="flex flex-col md:flex-row items-center justify-center rounded-lg w-full max-w-4xl">
+        <div className="w-full md:w-[35rem] animate-bounce bg-gradient-to-b from-indigo-10 hidden md:block flex justify-center">
+          <img src="./images/newlogin.png" alt="Login"  />
         </div>
-        <div className="w-full md:w-[20rem] relaive p-7 shadow-xl bg-white h-[30rem] md:h-[35rem] rounded-r-lg md:rounded-r-lg">
+        <div className=" bg-blue-400 w-full md:w-[20rem] p-7 shadow-xl bg-white h-[30rem] md:h-[35rem] rounded-r-lg">
           <form className="flex flex-col justify-center items-center" onSubmit={handleSubmit}>
-  
-            <label htmlFor="email" className=" block mb-10 text-xl font-large text-blue-900">LOG-IN</label>
+            <label htmlFor="email" className="block mb-10 text-3xl font-bold font-large text-blue-900">LOG-IN</label>
             <div className="mb-5 w-full">
               <label className="block mb-2 text-sm font-medium text-gray-900">Username</label>
               <input
                 id="email"
                 className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
                 placeholder="Username"
-                onChange={e => setValues({ ...values, email: e.target.value })}
+                onChange={e => setValues({ ...values, username: e.target.value })}
                 required
               />
             </div>
@@ -91,16 +90,20 @@ const Login = () => {
                 required
               />
             </div>
-
-            <OfflineCaptcha onCaptchaValid={handleCaptchaValidation} />
+            <span><OfflineCaptcha /></span>
             <div className="flex items-start mb-5 w-full">
               <a href="/Reset-password" className="font-medium text-blue-600 hover:underline">Change Password</a>
             </div>
-            <button type="submit" className="text-white bg-yellow-400 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center">Submit</button>
+            <button type="submit" className="text-white bg-yellow-400 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full px-5 py-2.5 text-center">Submit</button>
           </form>
         </div>
       </div>
     </div>
+
+    <Footer />
+  </div>
+</>
+
   );
 };
 

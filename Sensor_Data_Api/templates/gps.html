@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPS Data Display</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .gps-data {
+            margin-top: 20px;
+        }
+        .gps-data div {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>HOME</h1>
+    <nav>
+    <a href="/">click here </a>
+    </nav>
+    <h1>Real-Time GPS Data</h1>
+    <div class="gps-data">
+        <div>Date: <span id="date">N/A</span></div>
+        <div>Time: <span id="time">N/A</span></div>
+        <div>Latitude: <span id="latitude">N/A</span></div>
+        <div>Longitude: <span id="longitude">N/A</span></div>
+    </div>
+
+    <script>
+        const dateElem = document.getElementById('date');
+        const timeElem = document.getElementById('time');
+        const latitudeElem = document.getElementById('latitude');
+        const longitudeElem = document.getElementById('longitude');
+
+        const ws = new WebSocket("ws://192.168.31.48:8000/ws/gps");
+        ws.onmessage = function(event) {
+            console.log("WebSocket connection established.");
+		};
+		ws.onerror = function(error){
+			console.error("Websocket error:", error);
+		};
+		
+		ws.onmessage=function(event)
+		{
+            const data = JSON.parse(event.data);
+            dateElem.textContent = data.date;
+            timeElem.textContent = data.time;
+            latitudeElem.textContent = data.latitude;
+            longitudeElem.textContent = data.longitude;
+        };
+        ws.console = function(){
+			console.log("Websocket connection closed");
+		};
+    </script>
+</body>
+</html>

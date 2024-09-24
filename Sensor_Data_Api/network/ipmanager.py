@@ -1,7 +1,7 @@
 import os
 
 class NetworkConfigurator:
-    def __init__(self, interface, dhcpcd_conf="/etc/dhcpcd.conf"):#this will access the dhcpcd file of raspberry pi
+    def __init__(self, interface, dhcpcd_conf="/etc/dhcpcd.conf"):
         self.interface = interface
         self.dhcpcd_conf = dhcpcd_conf
         self.backup_conf = dhcpcd_conf + ".backup"
@@ -21,6 +21,8 @@ class NetworkConfigurator:
         command = f"sudo mv {temp_file} {self.dhcpcd_conf}"
         os.system(command)
         print(f"Updated{self.dhcpcd_conf} with new configurations")
+
+    
 
 
     def change_ip_address(self, new_ip, routers, dns_servers):
