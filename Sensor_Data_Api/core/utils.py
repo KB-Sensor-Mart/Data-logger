@@ -31,7 +31,7 @@ log_writer = LogWriter(log_filename="log.csv")
 
 # Initialize the sensor data reader
 sensor_data_reader = SensorDataReader(
-    port='/dev/ttyAMA2',
+    port='dev/ttyAMA2',
     baud_rate=115200,
     queue_size=1000,
     log_writer=log_writer,

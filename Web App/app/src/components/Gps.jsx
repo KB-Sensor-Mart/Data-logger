@@ -33,20 +33,24 @@ const GpsDataComponent = () => {
   }, []);
 
   return (
- <div className="flex gps-data-container">
-      <h2></h2>
-      <div className="text-xl space-x-5 m-5 mx-auto flex  gps-data-row">
-        <div className="gps-item">
-          <strong>Date:</strong> {gpsData.date}
+    <div className="flex flex-col items-center mx-auto p-4 max-w-lg">
+      <h2 className="text-3xl font-semibold mb-6">GPS Data</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full">
+        <div className="gps-item bg-gray-100 p-4 rounded-lg shadow-md text-center">
+          <strong className="block font-medium text-lg">Date:</strong> 
+          <span className="text-gray-700">{gpsData.date}</span>
         </div>
-        <div className="gps-item">
-          <strong>Time:</strong> {gpsData.time}
+        <div className="gps-item bg-gray-100 p-4 rounded-lg shadow-md text-center">
+          <strong className="block font-medium text-lg">Time:</strong> 
+          <span className="text-gray-700">{gpsData.time}</span>
         </div>
-        <div className="gps-item">
-          <strong>Latitude:</strong> {gpsData.latitude}
+        <div className="gps-item bg-gray-100 p-4 rounded-lg shadow-md text-center">
+          <strong className="block font-medium text-lg">Latitude:</strong> 
+          <span className="text-gray-700">{gpsData.latitude}</span>
         </div>
-        <div className="gps-item">
-          <strong>Longitude:</strong> {gpsData.longitude}
+        <div className="gps-item bg-gray-100 p-4 rounded-lg shadow-md text-center">
+          <strong className="block font-medium text-lg">Longitude:</strong> 
+          <span className="text-gray-700">{gpsData.longitude}</span>
         </div>
       </div>
     </div>
@@ -54,3 +58,5 @@ const GpsDataComponent = () => {
 };
 
 export default GpsDataComponent;
+
+

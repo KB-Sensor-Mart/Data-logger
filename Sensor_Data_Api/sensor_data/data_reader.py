@@ -5,7 +5,7 @@ import csv
 from datetime import datetime
 import logging 
 import os
-
+from gps import gps_data
 logger = logging.getLogger(__name__)
 
 class listNode:
@@ -110,9 +110,19 @@ class CSVwriter:
         timestamp = datetime.now().strftime("%d%m%Y_%H%M%S")
         self.filename = os.path.join(date_folder, f"{timestamp}.csv")
         self.file = open(self.filename, mode='w', newline='')
+
+        #set up csv writer
         self.writer = csv.DictWriter(self.file, fieldnames=['SNO', 'Xdata', 'Ydata', 'Zdata'])
+        #write gps data on top of csv file
+        self.write_gps_data()
+        #write header for sensor data
         self.writer.writeheader()
         self.log_writer.log_file_creation(self.filename)
+
+    def write_gps_data(self):
+        """Writes the GPS data to the first row of the CSV file."""
+        self.file.write(f"Date: {gps_data['date']}, Time: {gps_data['time']}, Latitude: {gps_data['latitude']}, Longitude: {gps_data['longitude']}\n")
+
 
     def save_data(self, data_point):
         try:
