@@ -249,7 +249,7 @@ const handleDownload = async () => {
   </div>
   
   <div className="flex-1 flex items-center justify-center overflow-y-auto">
-    <div className="grid grid-cols-1 mt-12 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-center w-full max-w-full">
+    <div className="grid grid-cols-1 mt-14 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-center w-full max-w-full">
       
       {/* IP Config Popup */}
       <Popup
