@@ -10,7 +10,8 @@ from core.utils import (download_files,
                        update_sensor_data,
                        change_ip,
                        process_login, 
-                       process_reset_password)
+                       process_reset_password,
+                       shutdown)
 from network.ipmanager import NetworkConfigurator
 import asyncio
 import logging
@@ -102,3 +103,7 @@ async def websocket_routes(websocket: WebSocket):
 async def post_ip_config(request: IPChangeRequest):
     return await change_ip(request)
 
+#------------Shut down route---------
+@app.post("/shutdown")
+async def shutdown_device():
+     return await shutdown()

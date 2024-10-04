@@ -33,27 +33,23 @@ const GpsDataComponent = () => {
   }, []);
 
   return (
-    <div className="flex flex-col items-center mx-auto p-4 max-w-lg">
-      <h2 className="text-3xl font-semibold mb-6">GPS Data</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full">
-        <div className="gps-item bg-gray-100 p-4 rounded-lg shadow-md text-center">
-          <strong className="block font-medium text-lg">Date:</strong> 
-          <span className="text-gray-700">{gpsData.date}</span>
-        </div>
-        <div className="gps-item bg-gray-100 p-4 rounded-lg shadow-md text-center">
-          <strong className="block font-medium text-lg">Time:</strong> 
-          <span className="text-gray-700">{gpsData.time}</span>
-        </div>
-        <div className="gps-item bg-gray-100 p-4 rounded-lg shadow-md text-center">
-          <strong className="block font-medium text-lg">Latitude:</strong> 
-          <span className="text-gray-700">{gpsData.latitude}</span>
-        </div>
-        <div className="gps-item bg-gray-100 p-4 rounded-lg shadow-md text-center">
-          <strong className="block font-medium text-lg">Longitude:</strong> 
-          <span className="text-gray-700">{gpsData.longitude}</span>
-        </div>
-      </div>
+<div className="flex mt-10 flex-col items-center gps-data-container ">
+  <h2 className="text-xl font-semibold">GPS Data</h2>
+  <div className="text-xl w-full flex flex-col sm:flex-row sm:space-x-5 space-y-4 sm:space-y-0 gps-data-row justify-center">
+    <div className="gps-item text-center p-3 rounded-md shadow-sm">
+      <strong>Date:</strong> {gpsData.date}
     </div>
+    <div className="gps-item text-center p-3 rounded-md shadow-sm">
+      <strong>Time:</strong> {gpsData.time}
+    </div>
+    <div className="gps-item text-center p-3 rounded-md shadow-sm">
+      <strong>Latitude:</strong> {gpsData.latitude}
+    </div>
+    <div className="gps-item text-center p-3 rounded-md shadow-sm">
+      <strong>Longitude:</strong> {gpsData.longitude}
+    </div>
+  </div>
+</div>
   );
 };
 

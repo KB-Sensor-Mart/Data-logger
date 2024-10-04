@@ -17,6 +17,7 @@ from login.login import auth_service
 from core.schemas import IPChangeRequest,SensorData,FTPCredentialUpdate
 from network.ipmanager import NetworkConfigurator
 from typing import Tuple
+import subprocess
 
 logger = logging.getLogger(__name__)
 
@@ -195,3 +196,12 @@ async def change_ip(request: IPChangeRequest):
         logger.error(f"Failed to change IP: {e}")
         raise HTTPException(status_code=500, detail="Failed to change IP address")
 
+#-----------------Shut down the system logic-----------------------
+async def shutdown():
+    """Shut down the Raspberry Pi."""
+    loop = asyncio.get_event_loop()
+    try:
+        await loop.run_in_executor(None, subprocess.run, ["sudo", "shutdown", "now"])
+        return {"message": "Shutdown command issued."}
+    except Exception as e:
+        return {"error": str(e)}

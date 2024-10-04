@@ -46,6 +46,9 @@
         <button type="submit">Change IP</button>
     </form>
 
+    <h2> Shutdown Raspberry pi</h2>
+    <button id="shutdown-button">Shutdown</button>
+
     <script>
         document.getElementById('downloadForm').onsubmit = function(e) {
             const date = document.getElementById('date').value;
@@ -87,6 +90,28 @@
                 }
             } catch (error) {
                 alert("An error occurred: " + error.message);
+            }
+        }
+        document.getElementById('shutdown-button').onclick = async function() {
+            if (confirm("Are you sure you want to shutdown the Raspberry Pi?")) {
+                try {
+                    const response = await fetch('/shutdown', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        alert(data.message);
+                    } else {
+                        alert("Failed to issue shutdown command: " + data.error);
+                    }
+                } catch (error) {
+                    alert("An error occurred: " + error.message);
+                }
             }
         }
     </script>
