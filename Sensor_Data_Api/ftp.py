@@ -119,13 +119,16 @@ async def upload_ftp_credentials(
     password: str = Form(...),
     remotepath: str = Form(...)
 ):
-    ftp_credentials['host'] = host
-    ftp_credentials['port'] = port
-    ftp_credentials['username'] = username
-    ftp_credentials['password'] = password
-    ftp_credentials['remotepath'] = remotepath
-    return {"message": "FTP credentials uploaded successfully"}
-
+    try:
+        ftp_credentials['host'] = host.strip()
+        ftp_credentials['port'] = port
+        ftp_credentials['username'] = username
+        ftp_credentials['password'] = password
+        ftp_credentials['remotepath'] = remotepath
+        return {"message": "FTP credentials uploaded successfully"}
+    except Exception as e:
+        logger.error(f"Error uploading FTP credentials: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to upload FTP credentials")
 
 # Route to fetch the current FTP credentials
 @ftp_app.get("/ftp/get_credentials")
@@ -142,6 +145,7 @@ async def check_connection():
         raise HTTPException(status_code=400, detail="FTP credentials not set")
     
     try:
+        print(f"DEBUG: attempting to connect with credentials: {ftp_credentials}")
         # Test connection to the FTP server
         client = aioftp.Client()
         await client.connect(
