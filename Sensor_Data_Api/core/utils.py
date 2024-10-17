@@ -117,7 +117,7 @@ async def download_files(date, start_time, end_time):
 
             # Add each CSV file to the zip if it falls within the time range
             for file_name in files:
-                if file_name.endswith('.csv'):
+                if file_name.endswith('.mseed'):
                     file_path = os.path.join(date_folder, file_name)
 
                     # Extract the time part from file name
