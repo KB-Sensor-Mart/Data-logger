@@ -8,13 +8,19 @@ from network.ipmanager import IPSending
 from contextlib import asynccontextmanager
 import sys
 import logging
+from sensor_data.ups import router as ups_router, start_sensor_reading, INA219
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
+
 # Define serial port, baud rate, and network interface
 serial_port = "/dev/ttyAMA2"
 baud_rate = 115200
 interface = "eth0"  
 ip_sender = IPSending(serial_port,baud_rate,interface)
+
+
+
 # Create the FastAPI app with the lifespan handler
 app = FastAPI()
 
@@ -26,16 +32,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.mount("/static", StaticFiles(directory="static"), name="static")
-# Including all routes from the routes.py file
-app.include_router(core_app)
-#includinf Ftp routes from ftp
-app.include_router(ftp_app)
+app.include_router(core_app)# Including all routes from the routes.py file
+app.include_router(ftp_app)#includinf Ftp routes from ftp
+app.include_router(ups_router)# Include UPS routes
 
 
 if __name__ == "__main__":
     try:
         logging.info("Starting IP sending thread.")
         ip_sender.start_sending_ip()
+        start_sensor_reading()
         uvicorn.run(app, host="0.0.0.0", port=8000)
     except KeyboardInterrupt:
         logging.info("Received keyboard interrupt.")

@@ -3,31 +3,83 @@ import threading
 import time
 import logging
 import serial
+import re
+import subprocess
 
 class NetworkConfigurator:
     def __init__(self, interface, dhcpcd_conf="/etc/dhcpcd.conf"):
         self.interface = interface
         self.dhcpcd_conf = dhcpcd_conf
         self.backup_conf = dhcpcd_conf + ".backup"
+        self.setup_logger()
+
+    def setup_logger(self):
+        logging.basicConfig(level=logging.INFO,
+                            format="%(asctime)s - %(levelname)s - %(message)s",
+                            handlers=[logging.StreamHandler(), 
+                                      logging.FileHandler("network_config.log")])
+        self.logger = logging.getLogger(__name__)
 
     def backup_config(self):
-        os.system(f"sudo cp {self.dhcpcd_conf} {self.backup_conf}")
+        try:
+            if os.path.exists(self.dhcpcd_conf):
+                os.system(f"sudo cp {self.dhcpcd_conf} {self.backup_conf}")
+                self.logger.info(f"backup of {self.dhcpcd_conf} created at {self.backup_config}")
+            else:
+                self.logger.error(f"Configuration file {self.dhcpcd_conf} not found.")
+        except Exception as e:
+            self.logger.error(f"Failed to create backup: {str(e)}")
 
     def read_config(self):
-        with open(self.dhcpcd_conf, "r") as file:
-            return file.readlines()
-
+        try:
+            with open(self.dhcpcd_conf, "r") as file:
+                self.logger.info(f"Reading {self.dhcpcd_conf}")
+                return file.readlines()
+        except FileNotFoundError:
+            self.logger.error(f"{self.dhcpcd_conf} not found.")
+            return None
+        except Exception as e:
+            self.logger.error(f"Error reading {self.dhcpcd_conf}: {str(e)}")
+            return None
+            
     def write_config(self, lines):
         temp_file = "/tmp/dhcpcd_conf.temp"
-        with open(temp_file , "w") as file:
-            file.writelines(lines)
+        try:
+            with open(temp_file, "w") as file:
+                file.writelines(lines)
+                self.logger.info(f"Temporary configuration written to {temp_file}")
             
-        command = f"sudo mv {temp_file} {self.dhcpcd_conf}"
-        os.system(command)
-        print(f"Updated{self.dhcpcd_conf} with new configurations")
+            command = f"sudo mv {temp_file} {self.dhcpcd_conf}"
+            os.system(command)
+            self.logger.info(f"{self.dhcpcd_conf} updated with new configurations")
+        except Exception as e:
+            self.logger.error(f"Error writing configuration: {str(e)}")
+
+    def validate_ip(self, ip):
+        ip_regex = re.compile(
+            r'^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.'
+            r'(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.'
+            r'(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.'
+            r'(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$'
+        )
+        if not ip_regex.match(ip):
+            self.logger.error(f"Invalid IP address format: {ip}")
+            return False
+        return True
 
     def change_ip_address(self, new_ip, routers, dns_servers):
+        if not self.validate_ip(new_ip):
+            self.logger.error(f"Invalid IP address: {new_ip}")
+            return {"status": "error", "message": f"Invalid IP address: {new_ip}"}
+        
+        if not self.validate_ip(routers):
+            self.logger.error(f"Invalid router address: {routers}")
+            return {"status": "error", "message": f"Invalid router address: {routers}"}
+
         lines = self.read_config()
+        if lines is None:
+            self.logger.error("Failed to read the network configuration file.")
+            return {"status": "error", "message": "Failed to read the network configuration file."}
 
         new_conf = []
         inside_static_block = False
@@ -54,16 +106,46 @@ class NetworkConfigurator:
             new_conf.append(f"static routers={routers}\n")
             new_conf.append(f"static domain_name_servers={dns_servers}\n")
 
+        # Write the new configuration
         self.write_config(new_conf)
-        self.restart_dhcpcd()
-        self.restart_pi()
         
+        # Restart services and return the result
+        if self.restart_dhcpcd():
+            if self.restart_pi():
+                self.logger.info(f"IP address changed to {new_ip} successfully.")
+                return {"status": "success", "message": f"IP address changed to {new_ip} successfully."}
+            else:
+                self.logger.error("Failed to restart the Raspberry Pi after changing IP address.")
+                return {"status": "error", "message": "Failed to restart the Raspberry Pi after changing IP address."}
+        else:
+            self.logger.error("Failed to restart the DHCP service.")
+            return {"status": "error", "message": "Failed to restart the DHCP service."}
+
     def restart_dhcpcd(self):
-        os.system("sudo systemctl restart dhcpcd")
-        print("dhcpcd service restarted")
-        
+        try:
+            result = subprocess.run(["sudo", "systemctl", "restart", "dhcpcd"], check=True)
+            if result.returncode == 0:
+                self.logger.info("dhcpcd service restarted successfully")
+                return True
+            else:
+                self.logger.error(f"Failed to restart dhcpcd: {result.stderr}")
+                return False
+        except subprocess.CalledProcessError as e:
+            self.logger.error(f"Error restarting dhcpcd: {str(e)}")
+            return False
+
     def restart_pi(self):
-        os.system("sudo reboot")
+        try:
+            result = subprocess.run(["sudo", "reboot"], check=True)
+            if result.returncode == 0:
+                self.logger.info("Rebooting the system...")
+                return True
+            else:
+                self.logger.error(f"Failed to reboot: {result.stderr}")
+                return False
+        except subprocess.CalledProcessError as e:
+            self.logger.error(f"Error rebooting system: {str(e)}")
+            return False
 
 class IPSending:
     def __init__(self, serial_port, baud_rate, interface):

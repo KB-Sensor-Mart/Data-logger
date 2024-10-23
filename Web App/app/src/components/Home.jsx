@@ -7,6 +7,7 @@ import  Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import {useIp} from './IpContext'
 import GpsDataComponents from '../components/Gps'
+import LiveUPSData from '../components/ups'
 
 function Home() {
     const [newIpAddress , setNewIpAddress] = useState('');
@@ -45,7 +46,7 @@ const updateFtpCredentials = async () => {
 
         await axios.post(`http://${ipAddress}:8000/ftp/upload_credentials`, data, {
             headers: {
-               'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Type': 'application/x-www-form-urlencoded',
             },
         });
 
@@ -249,7 +250,7 @@ const handleDownload = async () => {
   </div>
   
   <div className="flex-1 flex items-center justify-center overflow-y-auto">
-    <div className="grid grid-cols-1 mt-14 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-center w-full max-w-full">
+    <div className="grid grid-cols-1 m-4 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-center w-full max-w-full">
       
       {/* IP Config Popup */}
       <Popup
@@ -428,7 +429,7 @@ const handleDownload = async () => {
               className="w-full p-2 border border-gray-300 rounded mb-4"
             />
             <input
-              type="password"
+              
               value={password}
               required
               onChange={(e) => setPassword(e.target.value)}
@@ -517,10 +518,14 @@ const handleDownload = async () => {
             </div>
         </div>
     </div>
-         
+    
+    <div className="flex justify-center gap-20">
+    
+    <LiveUPSData />
     <GpsDataComponents / >
-
-
+    
+    </div>
+    
   <div>
      <Footer/>
   </div>
