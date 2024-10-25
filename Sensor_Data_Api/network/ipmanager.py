@@ -159,7 +159,7 @@ class IPSending:
         return formatted_ip
     
     def send_ip_to_sensor(self):
-        #print("DEBUG: Started sending IP to sensor thread")
+        self.logger.info("Started sending IP to sensor thread initialised")
         while self.running:
             try:
                 # Get the current IP address
@@ -177,9 +177,9 @@ class IPSending:
                     with serial.Serial(self.serial_port, self.baud_rate, timeout=1) as ser:
                         #print("Serial port opened successfully for sensor ")
                         ser.write(formatted_ip.encode())
-                        self.logger.info(f"IP sent to sensor: {formatted_ip.encode()}")
+                        self.logger.debug(f"IP sent to sensor: {formatted_ip.encode()}")
                 # Wait for 10 seconds before sending the IP again
-                time.sleep(10)
+                time.sleep(30)
             except serial.SerialException as e:
                 self.logger.error(f"Serial port error: {e}")
                 time.sleep(1)  # Wait before retrying

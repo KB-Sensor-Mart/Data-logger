@@ -41,33 +41,6 @@ sensor_data_reader = SensorDataReader(
 )
 
 
-#----------------FTP Logic ----------------------
-
-
-
-class NewFileHandler(FileSystemEventHandler):
-    def on_created(self, event):
-        if not event.is_directory:
-            logger.info(f"New file detected: {event.src_path}")
-            try:
-                ftp_uploader.upload_file(event.src_path)
-                logger.info(f"File {event.src_path} uploaded successfully.")
-            except Exception as e:
-                logger.error(f"Failed to upload file {event.src_path}: {e}")
-
-
-def start_observing_directory():
-    event_handler = NewFileHandler()
-    observer = Observer()
-    observer.schedule(event_handler, BASE_FOLDER, recursive=False)
-    observer.start()
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        observer.stop()
-    observer.join()
-
 #----------------Login logic --------------------
 async def process_login(username: str, password: str) -> tuple[bool, str]:
     try:
