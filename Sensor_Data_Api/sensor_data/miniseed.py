@@ -4,13 +4,12 @@ from obspy.core import Stream, Trace
 import numpy as np
 import os
 from datetime import datetime
-import logging
+from logging_config import get_logger
 
 
 class CSVToMiniSEEDConverter:
     def __init__(self):
-        logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-        self.logger = logging.getLogger(__name__)
+        self.logger = get_logger(__name__)
     
     def convert_csv_to_miniseed(self, csv_file_path):
         """Convert a single CSV file to MiniSEED format."""

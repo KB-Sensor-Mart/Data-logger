@@ -1,4 +1,4 @@
-import logging
+from logging_config import get_logger
 import os
 import asyncio
 import traceback
@@ -19,7 +19,7 @@ from network.ipmanager import NetworkConfigurator
 from typing import Tuple
 import subprocess
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 #checking the initial value of timer 
 #start_time = None
@@ -93,12 +93,12 @@ async def download_files(date, start_time, end_time):
         date_folder = os.path.join(BASE_FOLDER, formatted_date)
 
         # Debug: print the path checked
-        print(f"Looking for the files in {date_folder}")
+        logger.info(f"Looking for the files in {date_folder}")
 
         # Check if directory exists
         if not os.path.exists(date_folder):
             # Debug: print a message if directory is not found
-            print(f"Directory not found: {date_folder}")
+            logger.info(f"Directory not found: {date_folder}")
             raise HTTPException(status_code=404, detail=f"No files found for the date: {formatted_date}")
 
         buffer = io.BytesIO()
@@ -106,7 +106,7 @@ async def download_files(date, start_time, end_time):
             # List all files in the directory
             files = os.listdir(date_folder)
             # Debug message: print files found
-            print(f"Files found: {files}")
+            logger.info(f"Files found: {files}")
 
             # Parse the start and end time
             try:
@@ -126,12 +126,12 @@ async def download_files(date, start_time, end_time):
 
                     # Check if the file time falls within the specified time range
                     if start_t <= file_time <= end_t:
-                        print(f"Adding file to zip: {file_path}")
+                        logger.info(f"Adding file to zip: {file_path}")
                         try:
                             zip_file.write(file_path, file_name)
                         except Exception as e:
                             # Debug: print exception for file addition
-                            print(f"Error adding file to zip: {e}")
+                            logger.error(f"Error adding file to zip: {e}")
 
         # Move the cursor to the beginning of the buffer
         buffer.seek(0)
@@ -141,7 +141,7 @@ async def download_files(date, start_time, end_time):
 
     except Exception as e:
         # Debug: print exception message and stack trace
-        print(f"Exception occurred: {e}")
+        logger.error(f"Exception occurred: {e}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal server error")
 

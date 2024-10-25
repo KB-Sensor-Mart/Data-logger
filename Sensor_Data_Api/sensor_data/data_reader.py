@@ -3,17 +3,17 @@ import threading
 import time 
 import csv 
 from datetime import datetime
-import logging 
 import os
 from gps import gps_data
 import numpy as np
 from obspy import Stream, Trace
 from obspy.core import UTCDateTime
 from .miniseed import CSVToMiniSEEDConverter
+from logging_config import get_logger
 
 
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 class listNode:
     def __init__(self, val, nxt, prev):
@@ -30,28 +30,35 @@ class MyCircularQueue:
 
     def enQueue(self, value: int) -> bool:
         if self.space == 0:
+            logger.warning("Queue is full. Cannot enqueue.")
             return False
         cur = listNode(value, self.right, self.right.prev)
         self.right.prev.next = cur 
         self.right.prev = cur
         self.space -= 1
+        logger.info(f"Enqueued value: {value}. Space remaining: {self.space}.")
         return True
     
     def deQueue(self) -> bool:
         if self.isEmpty():
+            logger.warning("Queue is empty. Cannot dequeue.")
             return False
+        removed_value = self.left.next.val
         self.left.next = self.left.next.next
         self.left.next.prev = self.left
         self.space += 1
+        logger.info(f"Dequeued value: {removed_value}. Space available: {self.space}.")
         return True
     
     def Front(self) -> int:
         if self.isEmpty():
+            logger.warning("Queue is empty. Cannot access front value.")
             return -1
         return self.left.next.val
 
     def Rear(self) -> int:
         if self.isEmpty():
+            logger.warning("Queue is empty. Cannot access rear value.")
             return -1
         return self.right.prev.val
 
@@ -72,12 +79,14 @@ class LogWriter:
     def ensure_log_folder_exists(self):
         if not os.path.exists(self.log_folder):
             os.makedirs(self.log_folder)
+            logger.info(f"Created log folder: {self.log_folder}")
 
     def initialize_log_file(self):
         if not os.path.exists(self.log_filename):
             with open(self.log_filename, mode='w', newline='') as log_file:
                 writer = csv.DictWriter(log_file, fieldnames=['index_no', 'file_name', 'time_of_creation'])
                 writer.writeheader()
+            logger.info(f"Initialized log file: {self.log_filename}")
 
     def log_file_creation(self, file_name):
         time_of_creation = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -88,6 +97,7 @@ class LogWriter:
                 'file_name': file_name,
                 'time_of_creation': time_of_creation
             })
+        logger.info(f"Logged file creation: {file_name} at {time_of_creation}")
         self.index_no += 1
         
 class CSVwriter:
@@ -108,6 +118,7 @@ class CSVwriter:
     def ensure_base_folder_exists(self):
         if not os.path.exists(self.base_folder):
             os.makedirs(self.base_folder)
+            logger.info(f"Created data folder: {self.base_folder}")
       
     
     def open_new_file(self):
@@ -115,10 +126,12 @@ class CSVwriter:
         if new_date != self.current_date:
             self.current_date = new_date
             self.file_index = 1
+            logger.info(f"Date changed. Resetting file index to 1 for date: {self.current_date}")
         date_folder = os.path.join(self.base_folder, self.current_date)
         self.date_folder = date_folder
         if not os.path.exists(date_folder):
             os.makedirs(date_folder)
+            logger.info(f"Created date folder: {date_folder}")
         timestamp = datetime.now().strftime("%d%m%Y_%H%M%S")
         self.filename = os.path.join(date_folder, f"{timestamp}.csv")
         self.file = open(self.filename, mode='w', newline='')
@@ -136,7 +149,7 @@ class CSVwriter:
         """Writes the GPS data to the first row of the CSV file."""
         self.file.write("Date,Time,Latitude,Longitude\n")
         self.file.write(f"{gps_data['date']},{gps_data['time']},{gps_data['latitude']},{gps_data['longitude']}\n")
-
+        logger.info(f"Wrote GPS data to CSV: {gps_data}")
 
     def save_data(self, data_point):
         try:
@@ -146,7 +159,7 @@ class CSVwriter:
             return
         self.writer.writerow(data_point)
         self.current_sr_no = sr_no
-        #logger.info(f"Saved data point {sr_no} to {self.filename}")
+        logger.debug(f"Saved data point {sr_no} to {self.filename}")
         if self.current_sr_no >= self.sr_no_limit:
             logger.info(f"CSV file limit reached for {self.filename}. Preparing to create a new file.")
             self.close()
@@ -163,11 +176,13 @@ class FilesDownloading:
     def __init__(self,base_folder):
         self.base_folder =base_folder
     
-    def get_files_by_date(self,date_str):
-        date_folder = os.path.join(self.base_folder,date_str)
+    def get_files_by_date(self, date_str):
+        date_folder = os.path.join(self.base_folder, date_str)
         if not os.path.exists(date_folder):
-            return[]
-        files=[os.path.join(date_folder, f) for f in os.listdir(date_folder) if f.endswith('.mseed')]
+            logger.warning(f"No files found for date: {date_str}")
+            return []
+        files = [os.path.join(date_folder, f) for f in os.listdir(date_folder) if f.endswith('.mseed')]
+        logger.info(f"Retrieved {len(files)} files for date: {date_str}")
         return files
     
 class SensorDataReader:
@@ -182,6 +197,7 @@ class SensorDataReader:
         
         self.read_thread = threading.Thread(target=self.read_data)
         self.read_thread.start()
+        logger.info(f"Started data reading thread on port: {self.port} with baud rate: {self.baud_rate}")
 
     def read_data(self):
         while True:
@@ -195,6 +211,7 @@ class SensorDataReader:
                         "Ydata": part[2],
                         "Zdata": part[3]
                     }
+                    logger.debug(f"Read data: {data_point}")
                     with self.lock:
                         if self.data_queue.isFull():
                             self.data_queue.deQueue()

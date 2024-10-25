@@ -5,7 +5,9 @@ from fastapi import FastAPI, WebSocket, APIRouter
 import threading
 import uvicorn
 import asyncio
-import logging
+from logging_config import get_logger
+
+logger = get_logger(__name__)
 
 router = APIRouter()
 
@@ -152,9 +154,9 @@ def read_sensor_data():
     """Continuously read data from the INA219 sensor and update the sensor_data dictionary."""
     global sensor_data,ina219
     while True:
-        print(f"DEBUG: Before ina219 {ina219}")
+        logger.debug(f"Before ina219 {ina219}")
         if ina219 is not None:
-            print("DEBUG: inside ina219 if statement")
+            logger.debug("inside ina219 if statement")
            
             bus_voltage = ina219.getBusVoltage_V()
             current = ina219.getCurrent_mA() / 1000
@@ -172,7 +174,7 @@ def read_sensor_data():
             sensor_data["current"] = current
             sensor_data["power"] = power
             sensor_data["percent"] = percent
-            print(f"Updated sensor datga: {sensor_data}")
+            logger.info(f"Updated sensor datga: {sensor_data}")
 
             # Notify all connected WebSocket clients
             asyncio.run(notify_clients())
@@ -182,14 +184,14 @@ def read_sensor_data():
 
 @router.websocket("/ws_ups")
 async def websocket_endpoint(websocket: WebSocket):
-    print("DEBUG: wensocket of i2c ups is open")
+    logger.debug("wensocket of i2c ups is open")
     await websocket.accept()
     connected_clients.append(websocket)
     try:
         while True:
             await websocket.receive_text()  # Keep the connection alive
     except Exception as e:
-        print(f"Client disconnected: {e}")
+        logger.error(f"Client disconnected: {e}")
     finally:
         connected_clients.remove(websocket)
 
@@ -204,7 +206,7 @@ def start_sensor_reading():
         ina219 = INA219(addr=0x41)  # Create an instance of the INA219 sensor
         threading.Thread(target=read_sensor_data, daemon=True).start()    
     except OSError as e:
-        logging.error(f"Failed to initialize INA219: {e}")
+        logger.error(f"Failed to initialize INA219: {e}")
         sys.exit(1)  # Exit the program if the initialization fails
 
 

@@ -3,6 +3,9 @@ import time
 from datetime import datetime, timedelta
 import threading 
 import asyncio
+from logging_config import get_logger
+
+logger = get_logger(__name__)
 
 gps_data = {
 	"date": "N/A",
@@ -12,13 +15,13 @@ gps_data = {
 }
 
 def get_gps_data(data):
-	#print(f"DEBUG:- Raw gps data received: {data}")
+	logger.debug(f"Raw gps data received: {data}")
 	if not data.startswith("$GNRMC"):
-		#print("DEBUG: Data do not start with $GNRMC")
+		logger.debug("Data do not start with $GNRMC")
 		return None 
 	parts = data.split(",")
 	if len(parts) < 10:
-		#print("Data length is less then 10: {len)(parts)}")
+		logger.debug("Data length is less then 10: {len)(parts)}")
 		return None
 	try:
 		#extract time latitude and longitude
@@ -35,11 +38,11 @@ def get_gps_data(data):
 		
 		return gps_time, latitude , longitude, gps_date
 	except ValueError as e:
-		#print("DEBUG: Valueerror in get_gps_data: {e}")
+		logger.error("Valueerror in get_gps_data: {e}")
 		return None
 
 def convert_to_decimal_degree(raw_value, direction):
-	#print(f"DEBUG: Converting raw_value: {raw_value} with direction: {direction}")
+	logger.debug(f"Converting raw_value: {raw_value} with direction: {direction}")
 	try:
 		if len(raw_value) > 7:
 			# Latitude has 2 degrees digits, Longitude has 3 degrees digits
@@ -50,20 +53,20 @@ def convert_to_decimal_degree(raw_value, direction):
 				degrees = int(raw_value[:3])  # First 3 digits for longitude
 				minutes = float(raw_value[3:])  # Rest is minutes
 			
-			#print(f"DEBUG: Extracted Degrees: {degrees}, Minutes: {minutes}")
+			logger.debug(f"Extracted Degrees: {degrees}, Minutes: {minutes}")
 		
 			#convert minutes to decimal 
 			decimal_degree = degrees + minutes / 60.0
 			
 			if direction == "S" or direction == "W":
 				decimal_degree = -decimal_degree
-			#print(f"DEBUG: Final Decimal Degree: {decimal_degree}")
+			logger.debug(f" Final Decimal Degree: {decimal_degree}")
 			return round(decimal_degree, 6)
 		else:
-			#print(f"DEBUG: Invalid raw_value length: {len(raw_value)}")
+			logger.warning(f"Invalid raw_value length: {len(raw_value)}")
 			return None
 	except ValueError as e:
-		print(f"DEBUG:- Error converting to decimal degree: {e}")
+		logger.error(f"Error converting to decimal degree: {e}")
 		return None
 			
 def format_gps_time(gps_time):
@@ -77,7 +80,7 @@ def format_gps_time(gps_time):
 		ist_time = gps_datetime + ist_offset
 		return ist_time.strftime("%H:%M:%S")
 	except ValueError as e:
-		print(f"DEBUG: Error prasing gps time: {e}")
+		logger.error(f"Error prasing gps time: {e}")
 		return "Invalid Time"
 	
 def format_gps_date(gps_date):
@@ -87,17 +90,17 @@ def format_gps_date(gps_date):
 		# Return formatted date as DD/MM/YYYY
 		return date_object.strftime("%d/%m/%Y")
 	except ValueError:
-		print(f"DEBUG error prasing gps date: {e}")
+		logger.error(f"error prasing gps date: {e}")
 		return "Invalid data"
 	
 def read_gps_data():
 	ser= serial.Serial("/dev/serial0" , 9600)
-	print("DEBUG Serial port opened")
+	logger.info("Serial port opened")
 	try:
 		while True:
 			line = ser.readline().decode('utf-8' , errors ='ignore').strip()
 			if line:
-				#print(f"DEBUG: Raw serial data: {line}")
+				logger.debug(f"Raw serial data: {line}")
 				result = get_gps_data(line)
 				
 				if result:
@@ -110,11 +113,11 @@ def read_gps_data():
 					gps_data["time"] = formatted_gps_time
 					gps_data["latitude"] = f"{latitude:.6f}"
 					gps_data["longitude"] = f"{longitude:.6f}"
-					#print(f"DEBUG: Updated gps data {gps_data}")
+					logger.debug(f" Updated gps data {gps_data}")
 	except serial.SerialException as e:
-		print(f"Serial error: {e}")
+		logger.error(f"Serial error: {e}")
 	except Exception as e:
-		print(f"An error occurred: {e}")
+		logger.error(f"An error occurred: {e}")
 		
 		
 		
@@ -122,11 +125,11 @@ def read_gps_data():
 async def send_gps_data_via_websocket(websocket):
 	while True:
 		try:
-			#print(f"DEBUG: Sending GPS data via WebSocket: {gps_data}")
+			logger.debug(f"Sending GPS data via WebSocket: {gps_data}")
 			await websocket.send_json(gps_data)
 			await asyncio.sleep(0.5)  # Send GPS data every 1 second
 		except Exception as e:
-			print(f"WebSocket error: {e}")
+			logger.error(f"WebSocket error: {e}")
 			break
 			
 def start_gps_reader():

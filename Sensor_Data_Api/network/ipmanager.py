@@ -1,24 +1,18 @@
 import os
 import threading 
 import time
-import logging
 import serial
 import re
 import subprocess
+from logging_config import get_logger
 
 class NetworkConfigurator:
     def __init__(self, interface, dhcpcd_conf="/etc/dhcpcd.conf"):
         self.interface = interface
         self.dhcpcd_conf = dhcpcd_conf
         self.backup_conf = dhcpcd_conf + ".backup"
-        self.setup_logger()
-
-    def setup_logger(self):
-        logging.basicConfig(level=logging.INFO,
-                            format="%(asctime)s - %(levelname)s - %(message)s",
-                            handlers=[logging.StreamHandler(), 
-                                      logging.FileHandler("network_config.log")])
-        self.logger = logging.getLogger(__name__)
+        self.logger = get_logger(__name__)
+        self.backup_config()
 
     def backup_config(self):
         try:
@@ -156,6 +150,7 @@ class IPSending:
         self.running = False
         self.lock = threading.Lock()  # Create a lock
         self.ip_thread = None  # Initialize the thread attribute
+        self.logger = get_logger(__name__)
     
     def format_ip(self,ip_address):
         octets=ip_address.split('.')
@@ -182,14 +177,14 @@ class IPSending:
                     with serial.Serial(self.serial_port, self.baud_rate, timeout=1) as ser:
                         #print("Serial port opened successfully for sensor ")
                         ser.write(formatted_ip.encode())
-                        print(f"IP sent to sensor: {formatted_ip.encode()}")
+                        self.logger.info(f"IP sent to sensor: {formatted_ip.encode()}")
                 # Wait for 10 seconds before sending the IP again
                 time.sleep(10)
             except serial.SerialException as e:
-                print(f"Serial port error: {e}")
+                self.logger.error(f"Serial port error: {e}")
                 time.sleep(1)  # Wait before retrying
             except Exception as e:
-                print(f"Error sending IP to sensor: {e}")
+                self.logger.error(f"Error sending IP to sensor: {e}")
 
     def start_sending_ip(self):
         """Start the thread to send IP to the sensor."""
@@ -198,12 +193,12 @@ class IPSending:
             self.ip_thread = threading.Thread(target=self.send_ip_to_sensor)
             self.ip_thread.daemon = True  # Daemon thread, will terminate with main program
             self.ip_thread.start()
-            print("IP sending thread started")
+            self.logger.info("IP sending thread started")
         else:
-            print("IP sending thread is already running")
+            self.logger.warning("IP sending thread is already running")
 
     def stop_sending_ip(self):
         self.running = False  # Set running flag to False
         if self.ip_thread is not None:
             self.ip_thread.join()  # Wait for the thread to finish
-            print("IP sending thread stopped")
+            self.logger.info("IP sending thread stopped")
