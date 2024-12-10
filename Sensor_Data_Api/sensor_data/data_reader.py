@@ -10,26 +10,26 @@ from obspy import Stream, Trace
 from obspy.core import UTCDateTime
 from .miniseed import CSVToMiniSEEDConverter
 from logging_config import get_logger
-from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient  
+# from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient  
 
 logger = get_logger(__name__)
 
 # Initialize the MQTT client  
-mqtt_client = AWSIoTMQTTClient("SensorDataFetcher")  
-mqtt_client.configureEndpoint("d04292733s7ipsmyxv4mi-ats.iot.ap-south-1.amazonaws.com", 8883)  
-mqtt_client.configureCredentials("/home/admin/Data-logger/Sensor_Data_Api/aws/rootCA.pem", "/home/admin/Data-logger/Sensor_Data_Api/aws/ada58d487d54f9fc22bcf39143355f51c7e6ac92bd201886c5f70f93a22ee6ca-private.pem.key", "/home/admin/Data-logger/Sensor_Data_Api/aws/ada58d487d54f9fc22bcf39143355f51c7e6ac92bd201886c5f70f93a22ee6ca-certificate.pem.crt")  
-mqtt_client.configureOfflinePublishQueueing(-1)  
-mqtt_client.configureDrainingFrequency(2)  
-mqtt_client.configureConnectDisconnectTimeout(10)  
-mqtt_client.configureMQTTOperationTimeout(5)  
-# Connect to AWS IoT
-try:
-    mqtt_client.connect()
-    logger.info("Connected to AWS IoT successfully.")
-except Exception as e:
-    logger.error(f"Failed to connect to AWS IoT: {e}")
-    raise
-mqtt_topic = "sensor/dataLogger" 
+# mqtt_client = AWSIoTMQTTClient("SensorDataFetcher")  
+# mqtt_client.configureEndpoint("d04292733s7ipsmyxv4mi-ats.iot.ap-south-1.amazonaws.com", 8883)  
+# mqtt_client.configureCredentials("/home/admin/Data-logger/Sensor_Data_Api/aws/rootCA.pem", "/home/admin/Data-logger/Sensor_Data_Api/aws/ada58d487d54f9fc22bcf39143355f51c7e6ac92bd201886c5f70f93a22ee6ca-private.pem.key", "/home/admin/Data-logger/Sensor_Data_Api/aws/ada58d487d54f9fc22bcf39143355f51c7e6ac92bd201886c5f70f93a22ee6ca-certificate.pem.crt")  
+# mqtt_client.configureOfflinePublishQueueing(-1)  
+# mqtt_client.configureDrainingFrequency(2)  
+# mqtt_client.configureConnectDisconnectTimeout(10)  
+# mqtt_client.configureMQTTOperationTimeout(5)  
+# # Connect to AWS IoT
+# try:
+#     mqtt_client.connect()
+#     logger.info("Connected to AWS IoT successfully.")
+# except Exception as e:
+#     logger.error(f"Failed to connect to AWS IoT: {e}")
+#     raise
+# mqtt_topic = "sensor/dataLogger" 
 
 
 
