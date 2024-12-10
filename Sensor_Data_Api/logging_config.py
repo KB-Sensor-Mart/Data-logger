@@ -18,7 +18,7 @@ def get_logger(name: str) -> logging.Logger:
     # Check if handlers are already added to avoid duplicate logs
     if logger.hasHandlers():
         return logger
-    
+
     logger.setLevel(logging.DEBUG)
 
     # Console Handler (for INFO and higher logs)
@@ -38,7 +38,7 @@ def get_logger(name: str) -> logging.Logger:
     logger.addHandler(file_handler)
     
     # Clean up old log files, keeping only the last 15 days
-    cleanup_old_logs(base_log_dir, days_to_keep=15, logger = logger)
+    cleanup_old_logs(base_log_dir, days_to_keep=15, logger=logger)
     
     return logger
     

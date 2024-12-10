@@ -6,7 +6,6 @@ import os
 from datetime import datetime
 from logging_config import get_logger
 
-
 class CSVToMiniSEEDConverter:
     def __init__(self):
         self.logger = get_logger(__name__)
@@ -32,7 +31,6 @@ class CSVToMiniSEEDConverter:
             else:
                 self.logger.error(f"Conversion failed, MiniSEED file was not created for {csv_file_path}")
 
-
     def csv_to_miniseed(self, csv_file, output_mseed_file):
         """Convert a single CSV file to MiniSEED format."""
         try:
@@ -57,8 +55,7 @@ class CSVToMiniSEEDConverter:
         except Exception as e:
             self.logger.error(f"Failed to convert {csv_file} to MiniSEED: {str(e)}")
             raise
-
-
+            
     def read_csv_file(self, csv_file):
         """Read the CSV file, separating metadata and data."""
         try:

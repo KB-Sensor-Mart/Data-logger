@@ -35,7 +35,6 @@ def get_gps_data(data):
 		latitude = convert_to_decimal_degree(latitude_raw, latitude_dir)
 		longitude = convert_to_decimal_degree(longitude_raw, longitude_dir)
 		
-		
 		return gps_time, latitude , longitude, gps_date
 	except ValueError as e:
 		logger.error("Valueerror in get_gps_data: {e}")
@@ -68,6 +67,7 @@ def convert_to_decimal_degree(raw_value, direction):
 	except ValueError as e:
 		logger.error(f"Error converting to decimal degree: {e}")
 		return None
+			
 			
 def format_gps_time(gps_time):
 	try:
@@ -118,9 +118,7 @@ def read_gps_data():
 		logger.error(f"Serial error: {e}")
 	except Exception as e:
 		logger.error(f"An error occurred: {e}")
-		
-		
-		
+
 # WebSocket handler
 async def send_gps_data_via_websocket(websocket):
 	while True:
@@ -135,5 +133,3 @@ async def send_gps_data_via_websocket(websocket):
 def start_gps_reader():
     # Start a separate thread for reading GPS data
     threading.Thread(target=read_gps_data, daemon=True).start()
-
-

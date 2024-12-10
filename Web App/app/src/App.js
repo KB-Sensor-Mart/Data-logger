@@ -1,43 +1,76 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import './App.css';
 import Login from "./components/Login";
 import Admin from "./components/Admin";
 import Home from "./components/Home";
 import Graph from "./components/Graph";
 import Changepass from "./components/Changepass";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import ProtectedRoute from "./components/protectedRoutes"; 
+import { Route, Routes, useNavigate } from "react-router-dom";
 
 const AppRouter = () => {
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Simulate a loading time for the page (e.g., loading resources, etc.)
+    const interval = setInterval(() => {
+      const token = localStorage.getItem("token");
+      const expiryTime = localStorage.getItem("expiryTime");
+
+      if (token && expiryTime && Date.now() > Number(expiryTime)) {
+        // Token expired, clear storage and redirect to login
+        localStorage.removeItem("token");
+        localStorage.removeItem("expiryTime");
+        navigate("/");
+      }
+    }, 1000); // Check every second
+
+    return () => clearInterval(interval); // Cleanup on component unmount
+  }, [navigate]);
+
+  useEffect(() => {
     setTimeout(() => {
-      setLoading(false); // Change loading to false after 2 seconds (or adjust as necessary)
+      setLoading(false);
     }, 800);
   }, []);
-
-
- return (
-    <div>
+  
+  return (
+    <>
       {loading ? (
-        // Show the loader while loading
         <div className="flex items-center justify-center h-screen">
           <img src="./images/file.png" alt="Loading..." className="w-20 h-20 animate-spin" />
         </div>
       ) : (
-        // Show the routes when loading is complete
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Login />} />
-            <Route path="/home" element={<Home />} />
-            <Route path="/Live graph" element={<Graph />} />
-            <Route path="/Admin" element={<Admin />} />
-            <Route path="/Reset-password" element={<Changepass />} />
-          </Routes>
-        </BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Login />} />
+          <Route
+            path="/Home"
+            element={
+              <ProtectedRoute>
+                <Home />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/Live graph"
+            element={
+              <ProtectedRoute>
+                <Graph />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/Admin"
+            element={
+              <ProtectedRoute>
+                <Admin />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/Reset-password" element={<Changepass />} />
+        </Routes>
       )}
-    </div>
+    </>
   );
 };
 

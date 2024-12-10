@@ -18,9 +18,9 @@ import {useIp} from './IpContext'
 // Static Legend Component
 // const StaticLegend = () => (
 //   <div className="static-legend">
-//     <p><span className="legend-color" style={{ backgroundColor: "#2900ff" }}></span>X-axis</p>
-//     <p><span className="legend-color" style={{ backgroundColor: "#fffa00" }}></span>Y-axis</p>
-//     <p><span className="legend-color" style={{ backgroundColor: "#1cf007" }}></span>Z-axis</p>
+//     <p><span className="legend-color" style={{ backgroundColor: "#000000" }}></span>X-axis</p>
+//     <p><span className="legend-color" style={{ backgroundColor: "#000000" }}></span>Y-axis</p>
+//     <p><span className="legend-color" style={{ backgroundColor: "#000000" }}></span>Z-axis</p>
 //   </div>
 // );
 
@@ -36,7 +36,7 @@ function Graph() {
   const [showZ, setShowZ] = useState(true);
   const [yRange, setYRange] = useState(2000);
 
-  const MaxPoints = 200;
+  const MaxPoints = 1000;
 
   // Process buffer and update data state
   const processBuffer = () => {
@@ -155,10 +155,10 @@ return (
               <YAxis type="number" domain={[-yRange, yRange]} allowDataOverflow />
               <Tooltip />
               <Legend />
-              <CartesianGrid stroke="#ccc" strokeOpacity={0.1} fill="#232B2B" />
-              {showX && <Line type="monotone" dataKey="Xdata" strokeWidth={3.5} stroke="#f6511d" dot={true} />}
-              {showY && <Line type="monotone" dataKey="Ydata" strokeWidth={3.5} stroke="#ffb400" />}
-              {showZ && <Line type="monotone" dataKey="Zdata" strokeWidth={3.5} stroke="#00a6ed" />}
+              <CartesianGrid stroke="#ccc" strokeOpacity={0.1} fill="#ffffff" />
+              {showX && <Line type="monotone" dataKey="Xdata" strokeWidth={1.5} stroke="#000000" dot={true} />}
+              {showY && <Line type="monotone" dataKey="Ydata" strokeWidth={1.5} stroke="#000000" />}
+              {showZ && <Line type="monotone" dataKey="Zdata" strokeWidth={1.5} stroke="#000000" />}
             </LineChart>
           </ResponsiveContainer>
         </div>

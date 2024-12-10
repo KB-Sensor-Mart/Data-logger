@@ -29,7 +29,7 @@ const Navbar = () => {
       if (result.isConfirmed) {
         try {
           // Trigger the shutdown command only if the user confirms
-          const res = await axios.post(`http://${ipAddress}:8000/shutdown`);
+          const res = await axios.post(`http://${ipAddress}:8000/api/shutdown`);
 
           if (res.data.message === "Shutdown command issued") {
             // Show shutdown animation or message before the actual shutdown

@@ -35,7 +35,7 @@ class NetworkConfigurator:
         except Exception as e:
             self.logger.error(f"Error reading {self.dhcpcd_conf}: {str(e)}")
             return None
-            
+
     def write_config(self, lines):
         temp_file = "/tmp/dhcpcd_conf.temp"
         try:
@@ -114,7 +114,7 @@ class NetworkConfigurator:
         else:
             self.logger.error("Failed to restart the DHCP service.")
             return {"status": "error", "message": "Failed to restart the DHCP service."}
-
+    
     def restart_dhcpcd(self):
         try:
             result = subprocess.run(["sudo", "systemctl", "restart", "dhcpcd"], check=True)
@@ -140,7 +140,7 @@ class NetworkConfigurator:
         except subprocess.CalledProcessError as e:
             self.logger.error(f"Error rebooting system: {str(e)}")
             return False
-
+'''            
 class IPSending:
     def __init__(self, serial_port, baud_rate, interface):
         self.serial_port = serial_port
@@ -159,7 +159,7 @@ class IPSending:
         return formatted_ip
     
     def send_ip_to_sensor(self):
-        self.logger.info("Started sending IP to sensor thread initialised")
+        self.logger.info("sending IP to sensor in thread initialised")
         while self.running:
             try:
                 # Get the current IP address
@@ -202,3 +202,4 @@ class IPSending:
         if self.ip_thread is not None:
             self.ip_thread.join()  # Wait for the thread to finish
             self.logger.info("IP sending thread stopped")
+'''         

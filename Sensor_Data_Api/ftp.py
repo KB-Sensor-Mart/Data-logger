@@ -15,7 +15,6 @@ from watchdog.events import FileSystemEventHandler
 import time
 from logging_config import get_logger
 
-
 #ftp_app = FastAPI()
 ftp_app = APIRouter()
 
@@ -77,7 +76,7 @@ class NewFileHandler(FileSystemEventHandler):
             await self.client.upload(local_path, remote_path)
         except Exception as e:
             logger.error(f"Failed to upload file: {local_path}. Error: {e}")
-            
+
 # Function to connect to the FTP server with retry logic
 async def connect_to_ftp(client, retries=5, delay=5):
     for attempt in range(retries):
@@ -97,7 +96,7 @@ async def connect_to_ftp(client, retries=5, delay=5):
             await asyncio.sleep(delay)
     logger.error("All connection attempts to FTP server failed")
     return False
-            
+    
 # Route to render the HTML form
 @ftp_app.get("/", response_class=HTMLResponse)
 async def get_form(request: Request):
@@ -105,7 +104,7 @@ async def get_form(request: Request):
     return templates.TemplateResponse("form.html", {"request": request})
 
 # Route to handle the upload of FTP credentials
-@ftp_app.post("/ftp/upload_credentials")
+@ftp_app.post("/api/ftp/upload_credentials")
 async def upload_ftp_credentials(
     host: str = Form(...),
     port: int = Form(...),
@@ -126,7 +125,7 @@ async def upload_ftp_credentials(
         raise HTTPException(status_code=500, detail="Failed to upload FTP credentials")
 
 # Route to fetch the current FTP credentials
-@ftp_app.get("/ftp/get_credentials")
+@ftp_app.get("/api/ftp/get_credentials")
 async def get_ftp_credentials():
     if not ftp_credentials:
         logger.warning("Requested ftp credentials not found")
@@ -135,7 +134,7 @@ async def get_ftp_credentials():
     return ftp_credentials
 
 # Route to check the connection to the FTP server
-@ftp_app.get("/ftp/check_connection")
+@ftp_app.get("/api/ftp/check_connection")
 async def check_connection():
     if not ftp_credentials:
         logger.warning("Ftp credentials not set")
@@ -161,8 +160,9 @@ async def check_connection():
         logger.error(f"Error connecting to FTP server: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to connect to FTP server")
 
+
 # Route to upload a file to the FTP server
-@ftp_app.post("/ftp/upload_folder")
+@ftp_app.post("/api/ftp/upload_folder")
 async def upload_files_to_ftp():
     global upload_task, stop_flag,watchdog_active,observer
     stop_flag =False
@@ -200,7 +200,8 @@ async def upload_files_to_ftp():
 
     except Exception as e:
         logger.error(f"Upload error: {e}")
-        return {"message": f"Upload failed: {e}"}
+        return {"message": f"Upload failed: {e}"}     
+
 
 async def upload_directory_recursive(client, local_dir, remote_dir):
     global stop_flag
@@ -233,7 +234,7 @@ async def upload_directory_recursive(client, local_dir, remote_dir):
             logger.info(f"Uploading file: {local_path} to {remote_dir}")
             await client.upload(local_path,remote_dir)
 
-@ftp_app.post("/ftp/stop_upload")
+@ftp_app.post("/api/ftp/stop_upload")
 async def stop_upload():
     global stop_flag, upload_task, watchdog_active , observer
     stop_flag = True  # Set the stop flag to True, which will be checked during the upload

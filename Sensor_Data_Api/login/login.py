@@ -1,8 +1,12 @@
 import mariadb
 from login.dbconfig import db_config
 from logging_config import get_logger
+import uuid
+from datetime import datetime, timedelta
+import bcrypt
 
 logger = get_logger(__name__)
+
 
 class AuthService:
     def __init__(self, db_config):
@@ -20,33 +24,76 @@ class AuthService:
             )
             if connection is None:
                 raise Exception("Failed to establish a database connection")
-            logger.info("Connection established:", connection)  # Debugging line
+            logger.info("Database connection established")
             return connection
         except Exception as e:
             logger.error(f"Database connection failed: {e}")  # Log the exact error
             raise Exception(f"Database connection failed: {e}")
 
-    def login(self, username: str, password: str) -> (bool, str):
+    def login(self, username: str, password: str) -> (bool, str, str):
         try:
             connection = self._get_connection()
             cursor = connection.cursor()
-            logger.info("Cursor created:", cursor)  # Debugging line
 
-            if cursor is None:
-                raise Exception("Cursor creation failed")
-
-            # Execute the query using the synchronous cursor
-            cursor.execute("SELECT * FROM users WHERE username=%s AND password=%s", (username, password))
+            # Fetch user details
+            cursor.execute("SELECT id, password FROM users WHERE username=%s", (username,))
             user = cursor.fetchone()
-            connection.close()
 
-            if user:
-                logger.info("Login successful for user: %s", username)
-                return True, "Login successful"
-            return False, "Invalid username or password"
+            if user and bcrypt.checkpw(password.encode('utf-8'), user[1].encode('utf-8')):
+                session_key= str(uuid.uuid4())  # Generate session key
+                expiry_time = datetime.now() + timedelta(hours=12)
+
+                logger.info(f"Login successful for user: {username}")
+                return True, "Login successful", session_key ,expiry_time # Return session key directly
+
+            logger.warning("Login failed: Invalid username or password")
+            return False, "Invalid username or password", None, None
         except Exception as e:
             logger.error(f"Login failed: {e}")
-            return False, f"Login failed: {e}"
+            return False, f"Login failed: {e}", None, None
+        finally:
+            connection.close()
+            
+    def validate_session(self, session_key: str) -> bool:
+        try:
+            codnnection = self._get_connection()
+            cursor = connection.cursor()
+
+            # Check session validity
+            cursor.execute(
+                "SELECT user_id, expires_at FROM sessions WHERE session_key=%s",
+                (session_key,)
+            )
+            session = cursor.fetchone()
+
+            if session:
+                session_expiry = session[1]
+                if datetime.now() < session_expiry:
+                    return True  # Session is valid
+
+            logger.warning("Session validation failed: Invalid or expired session")
+            return False
+        except Exception as e:
+            logger.error(f"Session validation failed: {e}")
+            return False
+        finally:
+            connection.close()
+            
+    def logout(self, session_key: str) -> (bool, str):
+        try:
+            connection = self._get_connection()
+            cursor = connection.cursor()
+
+            # Delete session
+            cursor.execute("DELETE FROM sessions WHERE session_key=%s", (session_key,))
+            connection.commit()
+            logger.info("Logout successful")
+            return True, "Logout successful"
+        except Exception as e:
+            logger.error(f"Logout failed: {e}")
+            return False, f"Logout failed: {e}"
+        finally:
+            connection.close()
 
     def reset_password(self, username: str, new_password: str) -> (bool, str):
         try:
@@ -58,20 +105,23 @@ class AuthService:
             user = cursor.fetchone()
 
             if not user:
-                connection.close()
-                logger.warning("Password reset failed: User not found: %s", username)
+                logger.warning("Password reset failed: User not found")
                 return False, "User not found"
 
-            # Update the password
-            cursor.execute("UPDATE users SET password=%s WHERE username=%s", (new_password, username))
+            # Update password
+            hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
+            cursor.execute(
+                "UPDATE users SET password=%s WHERE username=%s",
+                (hashed_password.decode('utf-8'), username),
+            )
             connection.commit()
-            connection.close()
-            logger.info("Password reset successful for user: %s", username)
+            logger.info(f"Password reset successful for user: {username}")
             return True, "Password reset successful"
         except Exception as e:
             logger.error(f"Password reset failed: {e}")
             return False, f"Password reset failed: {e}"
-
+        finally:
+            connection.close()
 
 # Instantiate the auth service using db_config
 auth_service = AuthService(db_config=db_config)

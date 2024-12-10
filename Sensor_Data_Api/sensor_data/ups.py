@@ -19,7 +19,6 @@ sensor_data = {
 }
 # INA219 sensor initialization
 ina219 = None
-# INA219 sensor initialization
 connected_clients = []
 # Config Register (R/W)
 _REG_CONFIG                 = 0x00
@@ -148,8 +147,11 @@ async def notify_clients():
     """Send sensor data to all connected WebSocket clients."""
     if connected_clients:  # Check if there are connected clients
         for websocket in connected_clients:
-            await websocket.send_json(sensor_data)
-
+            try:
+                await websocket.send_json(sensor_data)
+            except Exception as e:
+                logger.error(f"Failed to send data to client: {e}")
+            
 def read_sensor_data():
     """Continuously read data from the INA219 sensor and update the sensor_data dictionary."""
     global sensor_data,ina219
@@ -174,17 +176,17 @@ def read_sensor_data():
             sensor_data["current"] = current
             sensor_data["power"] = power
             sensor_data["percent"] = percent
-            logger.info(f"Updated sensor datga: {sensor_data}")
+            #logger.info(f"Updated sensor datga: {sensor_data}")
 
-            # Notify all connected WebSocket clients
+
             asyncio.run(notify_clients())
+                
+        time.sleep(1)  # Read every 1 seconds
 
-        time.sleep(30)  # Read every 2 seconds
 
-
-@router.websocket("/ws_ups")
+@router.websocket("/ws/ws_ups")
 async def websocket_endpoint(websocket: WebSocket):
-    logger.debug("wensocket of i2c ups is open")
+    logger.debug("websocket of i2c ups is open")
     await websocket.accept()
     connected_clients.append(websocket)
     try:
@@ -208,5 +210,3 @@ def start_sensor_reading():
     except OSError as e:
         logger.error(f"Failed to initialize INA219: {e}")
         sys.exit(1)  # Exit the program if the initialization fails
-
-

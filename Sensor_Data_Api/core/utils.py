@@ -12,7 +12,7 @@ import zipfile
 import time 
 from datetime import datetime
 from fastapi.responses import StreamingResponse,JSONResponse
-from sensor_data.data_reader import SensorDataReader,LogWriter
+from sensor_data.data_reader import SensorDataReader,LogWriter,mqtt_client,mqtt_topic
 from login.login import auth_service
 from core.schemas import IPChangeRequest,SensorData,FTPCredentialUpdate
 from network.ipmanager import NetworkConfigurator
@@ -34,21 +34,24 @@ log_writer = LogWriter(log_filename="log.csv")
 sensor_data_reader = SensorDataReader(
     port='/dev/ttyAMA2',
     baud_rate=115200,
-    queue_size=1000,
+    queue_size=5000,
     log_writer=log_writer,
     csv_filename_prefix=" ",
-    sr_no_limit=29999
+    sr_no_limit=29999,
+    #mqtt_client=mqtt_client,
+    #mqtt_topic=mqtt_topic
 )
 
-
 #----------------Login logic --------------------
-async def process_login(username: str, password: str) -> tuple[bool, str]:
+async def process_login(username: str, password: str) -> tuple[bool, str, str, datetime]:
     try:
-        return auth_service.login(username, password)
+        success, message, session_key,expiry_time = auth_service.login(username, password)
+        if not success:
+            return success, message, None
+        return success, message, session_key,expiry_time
     except Exception as e:
-        # Log error
         logger.error(f"Login failed: {e}")
-        return False, "An error occurred during login"
+        return False, "An error occurred during login", None,None
 
 async def process_reset_password(username: str, new_password: str) -> tuple[bool, str]:
     try:
@@ -56,8 +59,7 @@ async def process_reset_password(username: str, new_password: str) -> tuple[bool
     except Exception as e:
         logger.error(f"Password reset failed: {e}")
         return False, "An error occurred during password reset"
-        
-
+    
 #----------------Download file Logic ----------------------
 async def download_files(date, start_time, end_time):
     try:
@@ -90,7 +92,7 @@ async def download_files(date, start_time, end_time):
 
             # Add each CSV file to the zip if it falls within the time range
             for file_name in files:
-                if file_name.endswith('.mseed'):
+                if file_name.endswith('.csv'):
                     file_path = os.path.join(date_folder, file_name)
 
                     # Extract the time part from file name
@@ -117,7 +119,7 @@ async def download_files(date, start_time, end_time):
         logger.error(f"Exception occurred: {e}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail="Internal server error")
-
+        
 #----------------Websocket Logic ----------------------
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()

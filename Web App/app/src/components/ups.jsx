@@ -12,12 +12,17 @@ const UPSDataComponent = () => {
 
   useEffect(() => {
     // Establish WebSocket connection to the backend for UPS data
-    const socket = new WebSocket(`ws://${ipAddress}:8000/ws_ups`);  // Adjust the WebSocket URL as needed
+    const socket = new WebSocket(`ws://${ipAddress}:8000/ws/ws_ups`);  // Adjust the WebSocket URL as needed
 
     // Handle incoming WebSocket messages (UPS data updates)
     socket.onmessage = (event) => {
+	try{
       const data = JSON.parse(event.data);
+      //console.log('Received data:', data);
       setUpsData(data);
+	} catch (error) {
+	   console.error('Error parsing WebSocket data:' , error);
+	}
     };
 
     // Handle WebSocket errors
@@ -31,19 +36,19 @@ const UPSDataComponent = () => {
     };
   }, [ipAddress]);
 
-  return (
-    <div className="flex mt-10 flex-col items-center ups-data-container">
-      <h2 className="text-xl font-semibold">Power Data</h2>
-      <div className="text-xl w-full flex flex-col sm:flex-row sm:space-x-5 space-y-4 sm:space-y-0 ups-data-row justify-center">
-        <div className="ups-item text-center p-3 rounded-md shadow-sm">
-          <strong>Battery Voltage:</strong> {upsData.voltage} V
-        </div>
-        <div className="ups-item text-center p-3 rounded-md shadow-sm">
-          <strong>Current:</strong> {upsData.current} 
-        </div>
-      </div>
+return (
+  <div className="flex flex-col items-center justify-center ups-data-container p-4">
+    <h2 className="text-xl font-semibold mb-4">Power Data</h2>
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-center w-full max-w-lg bg-white rounded-md shadow-sm p-4">
+      {/* Labels */}
+      <div className="font-bold">Battery Voltage:</div>
+      <div className="font-bold">Current:</div>
+      {/* Values */}
+      <div>{upsData.voltage !== "N/A" ? `${upsData.voltage} V` : "N/A V"}</div>
+      <div>{upsData.current !== null && upsData.current !== undefined ? `${upsData.current} A` : "N/A A"}</div>
     </div>
-  );
+  </div>
+);
 };
 
 export default UPSDataComponent;

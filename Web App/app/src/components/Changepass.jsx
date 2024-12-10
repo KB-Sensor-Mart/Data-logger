@@ -29,7 +29,7 @@ const ChangePassword = () => {
     }
 
     try {
-      const res = await axios.post(`http://${ipAddress}:8000/reset-password`, {
+      const res = await axios.post(`http://${ipAddress}:8000/api/reset-password`, {
         username: values.username,
         new_password: values.newPassword,
       });

@@ -10,10 +10,28 @@ from obspy import Stream, Trace
 from obspy.core import UTCDateTime
 from .miniseed import CSVToMiniSEEDConverter
 from logging_config import get_logger
-
-
+from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient  
 
 logger = get_logger(__name__)
+
+# Initialize the MQTT client  
+mqtt_client = AWSIoTMQTTClient("SensorDataFetcher")  
+mqtt_client.configureEndpoint("d04292733s7ipsmyxv4mi-ats.iot.ap-south-1.amazonaws.com", 8883)  
+mqtt_client.configureCredentials("/home/admin/Data-logger/Sensor_Data_Api/aws/rootCA.pem", "/home/admin/Data-logger/Sensor_Data_Api/aws/ada58d487d54f9fc22bcf39143355f51c7e6ac92bd201886c5f70f93a22ee6ca-private.pem.key", "/home/admin/Data-logger/Sensor_Data_Api/aws/ada58d487d54f9fc22bcf39143355f51c7e6ac92bd201886c5f70f93a22ee6ca-certificate.pem.crt")  
+mqtt_client.configureOfflinePublishQueueing(-1)  
+mqtt_client.configureDrainingFrequency(2)  
+mqtt_client.configureConnectDisconnectTimeout(10)  
+mqtt_client.configureMQTTOperationTimeout(5)  
+# Connect to AWS IoT
+try:
+    mqtt_client.connect()
+    logger.info("Connected to AWS IoT successfully.")
+except Exception as e:
+    logger.error(f"Failed to connect to AWS IoT: {e}")
+    raise
+mqtt_topic = "sensor/dataLogger" 
+
+
 
 class listNode:
     def __init__(self, val, nxt, prev):
@@ -36,7 +54,7 @@ class MyCircularQueue:
         self.right.prev.next = cur 
         self.right.prev = cur
         self.space -= 1
-        logger.info(f"Enqueued value: {value}. Space remaining: {self.space}.")
+        logger.debug(f"Enqueued value: {value}. Space remaining: {self.space}.")
         return True
     
     def deQueue(self) -> bool:
@@ -47,7 +65,7 @@ class MyCircularQueue:
         self.left.next = self.left.next.next
         self.left.next.prev = self.left
         self.space += 1
-        logger.info(f"Dequeued value: {removed_value}. Space available: {self.space}.")
+        logger.debug(f"Dequeued value: {removed_value}. Space available: {self.space}.")
         return True
     
     def Front(self) -> int:
@@ -67,6 +85,7 @@ class MyCircularQueue:
     
     def isFull(self) -> bool:
         return self.space == 0
+
 
 class LogWriter:
     def __init__(self, log_filename="log.csv"):
@@ -99,7 +118,7 @@ class LogWriter:
             })
         logger.info(f"Logged file creation: {file_name} at {time_of_creation}")
         self.index_no += 1
-        
+
 class CSVwriter:
     def __init__(self, filename_prefix, sr_no_limit, log_writer):
         self.filename_prefix = filename_prefix
@@ -169,7 +188,7 @@ class CSVwriter:
             
 
     def close(self):
-        self.file.close()
+        self.file.close()   
         
 #this is the files where i will handel the downloading data via ethernet   
 class FilesDownloading:
@@ -181,7 +200,7 @@ class FilesDownloading:
         if not os.path.exists(date_folder):
             logger.warning(f"No files found for date: {date_str}")
             return []
-        files = [os.path.join(date_folder, f) for f in os.listdir(date_folder) if f.endswith('.mseed')]
+        files = [os.path.join(date_folder, f) for f in os.listdir(date_folder) if f.endswith('.csv')]
         logger.info(f"Retrieved {len(files)} files for date: {date_str}")
         return files
     
@@ -189,7 +208,17 @@ class SensorDataReader:
     def __init__(self, port, baud_rate, queue_size, csv_filename_prefix, sr_no_limit, log_writer):
         self.port = port
         self.baud_rate = baud_rate
-        self.serial_connection = serial.Serial(self.port, self.baud_rate)
+        self.serial_connection = None
+        
+        #self.mqtt_client = mqtt_client
+        #self.mqtt_topic = mqtt_topic
+         
+        try:
+            self.serial_connection = serial.Serial(self.port, self.baud_rate)
+            logger.info(f"Serial connection established on port {self.port} with baud rate {self.baud_rate}")
+        except serial.SerialException as e:
+            logger.error(f"Failed to establish serial connection: {e}")
+
         self.data_queue = MyCircularQueue(queue_size)
         self.lock = threading.Lock()
         # Initialize converter and pass to CSVWriter
@@ -201,24 +230,38 @@ class SensorDataReader:
 
     def read_data(self):
         while True:
-            if self.serial_connection.in_waiting > 0:
-                data_line = self.serial_connection.readline().decode('utf-8', errors='replace').strip()
-                part = data_line.split(',')
-                if len(part) == 4:
-                    data_point = {
-                        "SNO": part[0],
-                        "Xdata": part[1],
-                        "Ydata": part[2],
-                        "Zdata": part[3]
-                    }
-                    logger.debug(f"Read data: {data_point}")
-                    with self.lock:
-                        if self.data_queue.isFull():
-                            self.data_queue.deQueue()
-                        self.data_queue.enQueue(data_point)
-                    self.csv_writer.save_data(data_point)
+            if self.serial_connection is None:
+                logger.error("Serial connection is not established.")
+                break
 
-            
+            try:
+                if self.serial_connection.in_waiting > 0:
+                    data_line = self.serial_connection.readline().decode('utf-8', errors='replace').strip()
+                    logger.debug(f"Raw data line read from serial: {data_line}")
+                    
+                    part = data_line.split(',')
+                    if len(part) == 4:
+                        data_point = {
+                            "SNO": part[0],
+                            "Xdata": part[1],
+                            "Ydata": part[2],
+                            "Zdata": part[3]
+                        }
+                        logger.debug(f"Parsed data point: {data_point}")
+                        with self.lock:
+                            if self.data_queue.isFull():
+                                self.data_queue.deQueue()
+                            self.data_queue.enQueue(data_point)
+                        self.csv_writer.save_data(data_point)
+                        #elf.publish_data_to_mqtt(data_point)
+                    else:
+                        logger.warning(f"Incomplete data line received: {data_line}")
+            except serial.SerialException as e:
+                logger.error(f"SerialException encountered: {e}")
+                break
+            except Exception as e:
+                logger.error(f"Unexpected error while reading data: {e}")
+                break
             time.sleep(0.005)
 
     def get_data(self):
@@ -229,7 +272,50 @@ class SensorDataReader:
                 data_list.append(current.val)
                 current = current.next
             return data_list
-    
+ 
+    '''def publish_data_to_mqtt(self, data_point):
+        """Publishes data to MQTT."""
+        if self.mqtt_client:
+            try:
+                self.mqtt_client.publish(self.mqtt_topic, str(data_point), 1)
+                #logger.info(f"Published data to MQTT: {data_point}")
+            except Exception as e:
+                logger.error(f"Failed to publish data to MQTT: {e}")
+        else:
+            logger.error("MQTT client is not initialized.")'''
+
     def stop(self):
+        if self.serial_connection and self.serial_connection.is_open:
+            self.serial_connection.close()
+            logger.info("Serial connection closed.")
         self.csv_writer.close()
         self.read_thread.join()
+        logger.info("Data reading thread stopped.")
+        
+class DataStatusChecker:
+    def __init__(self, base_folder):
+        self.base_folder = base_folder
+        self.file_count_goal = 288  # Goal number of files for 24 hours (5 minutes interval)
+
+    def get_date_status(self):
+        status = {}
+        if not os.path.exists(self.base_folder):
+            logger.warning(f"Base folder {self.base_folder} does not exist.")
+            return status
+
+        # Loop through all date folders in the base folder
+        for date_folder in os.listdir(self.base_folder):
+            folder_path = os.path.join(self.base_folder, date_folder)
+            if os.path.isdir(folder_path):
+                file_count = len([f for f in os.listdir(folder_path) if f.endswith('.csv')])
+                if file_count >= self.file_count_goal:
+                    status[date_folder] = "complete"  # Full data for 24 hours
+                elif file_count > 0:
+                    status[date_folder] = "partial"  # Some data available
+                else:
+                    status[date_folder] = "none"     # No data available
+                logger.info(f"Date {date_folder}: {status[date_folder]} with {file_count} files")
+            else:
+                logger.warning(f"Skipping non-folder item: {date_folder}")
+
+        return status
